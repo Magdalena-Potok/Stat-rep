@@ -1,0 +1,319 @@
+---
+title: "Raport 4"
+author: "Magdalena Potok"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+## Zadanie 1
+
+Niech $X_1, X_2,...X_{n_1}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_1, \sigma^2_1)$ oraz niech $Y_1,, Y_2, ..., Y_{n_2}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_2, \sigma^2_2)$. Wtedy przedział ufności dla różnicy średnich tych rozkładów, przy założeniu, że znamy ich wariancję, wygląda następująco: 
+$$\bar{X} - \bar{Y} \pm z^*_{(1-\frac{\alpha}2)}\sqrt{\frac{\sigma^2_1}{n_1}+\frac{\sigma^2_2}{n_2}}$$
+gdzie $z^*_{(1-\frac{\alpha}2)}$ jest wartością krytyczną z rozkładu normalnego na poziomie istotności $\alpha$, $\bar{X}$ i $\bar{Y}$ to średnia próbkowa zmiennych niezależnych.
+
+
+## Zadanie 2
+Wygeneruję $n_1$ oraz $n_2$ obserwacji z rozkładu:  
+__(a)__ normalnego z parametrem przesunięcia $\mu_1$ i $\mu_2$ oraz skali $\sigma_1$ i $\sigma_2$  
+(i) $\mu_1$ = 0, $\sigma_1$ = 1, $\mu_2$ = 0, $\sigma_2$ = 1,  
+(ii) $\mu_1$ = 0, $\sigma_1$ = 1, $\mu_2$ = 1, $\sigma_2$ = 2.  
+__(b)__ logistycznego z parametrem przesunięcia $\mu_1$ i $\mu_2$ oraz skali $\sigma_1$ i $\sigma_2$  
+(i) $\mu_1$ = 0, $\sigma_1$ = 1, $\mu_2$ = 0, $\sigma_2$ = 1,  
+(ii) $\mu_1$ = 0, $\sigma_1$ = 1, $\mu_2$ = 1, $\sigma_2$ = 2.  
+Na podstawie powyższych rozkładów wyznaczę przedział ufności z zadania 1. dla parametru $\mu_1 - \mu_2$ na poziomie ufności $1-\alpha = 0.95$ oraz jego długość. Doświadczenie powtórzę 10 000 razy, oszacuję prawdopodobieństwo pokrycia nieznanego parametru przez przedział ufności oraz jego długość.
+
+
+```{r, echo = FALSE}
+set.seed(1)
+PU_norm <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0,N)
+  PU_p <- rep(0,N)
+  
+  qn <- qnorm(1 - alfa/2)
+  
+  for(i in 1:N){
+    x <- rnorm(n1, mi1, sigma1)
+    y <- rnorm(n2, mi2, sigma2)
+    PU_l[i] <- mean(x) - mean(y) - sqrt(sigma1^2/n1 + sigma2^2/n2)*qn
+    PU_p[i] <- mean(x) - mean(y) + sqrt(sigma1^2/n1 + sigma2^2/n2)*qn
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < mi1 - mi2 && mi1 - mi2 < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), mi1 - mi2, mean(PU_l), mean(PU_p)),3))
+}
+
+
+PU_logis <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0, N)
+  PU_p <- rep(0, N)
+  
+  qn <- qnorm(1 - alfa/2)
+  
+  for(i in 1:N){
+    x <- rlogis(n1, mi1, sigma1)
+    y <- rlogis(n2, mi2, sigma2)
+    
+    
+    PU_l[i] <- mean(x) - mean(y) - sqrt(sigma1^2/n1 + sigma2^2/n2)*qn
+    PU_p[i] <- mean(x) - mean(y) + sqrt(sigma1^2/n1 + sigma2^2/n2)*qn
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < mi1  - mi2 && mi1 - mi2 < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), mi1 - mi2, mean(PU_l), mean(PU_p)),3))
+}
+
+
+
+
+n_i_50 <- PU_norm(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+n_ii_50 <- PU_norm(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+
+l_i_50 <- PU_logis(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+l_ii_50 <- PU_logis(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+results <- data.frame(
+  row.names = c("Norm (i)", "Norm (ii)", "Logis (i)", "Logis(ii)"),
+  SR_Dlugosc = c(n_i_50[1], n_ii_50[1], l_i_50[1], l_ii_50[1]),
+  Prawdopodobienstwo = c(n_i_50[2], n_ii_50[2], l_i_50[2], l_ii_50[2]),
+  Mi1_Mi2 = c(n_i_50[3], n_ii_50[3], l_i_50[3], l_ii_50[3]),
+  Mean_PU_l = round(c(n_i_50[4], n_ii_50[4], l_i_50[4], l_ii_50[4]),3),
+  Mean_PU_p = round(c(n_i_50[5], n_ii_50[5], l_i_50[5], l_ii_50[5]),3)
+)
+
+library(knitr)
+
+colnames(results) <- c("śr. długość", "Prawdopodobieństwo", "Mu1 - Mu2", "Lewy PU", "Prawy PU")
+
+knitr::kable(results, caption = "Wyniki testów dla różnych przypadków")
+```
+
+Można zauważyć dla rozkładu normalnego, że prawdopodobieństwo nie zależy od przyjętych $n, \mu, \sigma$ i oscyluje dla obu przypadków około 0.95, czyli teoretycznej wartości prawdopodobieństwa. Można za to zauważyć, że dla Norm (ii) przedział ufności jest dłuższy, wynika to z zwiększonej wariancji dla obserwacji z drugiego rozkładu, obserwacje są bardziej rozproszone, co wpływa na jakość estymacji.  
+Dla rozkładu logistycznego również prawdopodobieństwa są podobne dla obu podpunktów i wynoszą około 0.72, czyli można powiedzieć, że zmienne z polecenia parametry nie mają wpływu na pokrycie prawdziwej wartości z przedziałami ufności. Wpływ ma za to zmienienie $\sigma_2$ na średnią długość naszego przedziału, ponieważ ze zwiększeniem się tej wartości zwiększyła też się średnia długość. Wyniki i wnioski są zatem podobne dla obu tych rozkładów.
+
+
+
+
+## Zadanie 5
+
+Niech $X_1, X_2,...X_{n_1}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_1, \sigma^2_1)$ oraz niech $Y_1,, Y_2, ..., Y_{n_2}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_2, \sigma^2_2)$. Wtedy przedział ufności dla różnicy średnich tych rozkładów, przy założeniu, że nie znamy ich wariancji, wygląda następująco: 
+$$\bar{X} - \bar{Y} \pm t^*_{(1-\frac{\alpha}2, \ df) }\sqrt{\frac{s^2_1}{n_1}+\frac{s^2_2}{n_2}}$$
+gdzie $\bar{X}$ i $\bar{Y}$ to średnia próbkowa zmiennych niezależnych, $s_1^2$ i $s_2^2$ to odpowiednio estymatory wariancji próbek 1 i 2 populacji, 
+$t^*_{(1-\frac{\alpha}2, \ df)}$ to wartość krytyczna z rozkładu t-Studenta dla zadanej liczby swobody (tutaj $df =n_1 + n_2 -2$) i poziomu istotności. 
+
+
+## Zadanie 6
+Powtórzę eksperyment numeryczny z zadania 2., na jego podstawie oszacują prawdopodobieństwo pokrycia nieznanego parametru przez przedział ufności z zadania 5. na poziomie ufności 0.95 oraz jego długość
+
+
+```{r, echo = FALSE}
+
+PU_norm_6 <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0,N)
+  PU_p <- rep(0,N)
+  
+  qt <- qt(1 - alfa/2, df = n1 + n2 - 2)
+  
+  for(i in 1:N){
+    x <- rnorm(n1, mi1, sigma1)
+    s1 <- sd(x)
+    
+    y <- rnorm(n2, mi2, sigma2)
+    s2 <- sd(y)
+    
+    PU_l[i] <- mean(x) - mean(y) - sqrt(s1^2/n1 + s2^2/n2)*qt
+    PU_p[i] <- mean(x) - mean(y) + sqrt(s1^2/n1 + s2^2/n2)*qt
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < mi1 - mi2 && mi1 - mi2 < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), mi1 - mi2, mean(PU_l), mean(PU_p)),3))
+}
+
+
+
+PU_logis_6 <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0,N)
+  PU_p <- rep(0,N)
+  
+  qt <- qt(1 - alfa/2, df = n1+n2 - 2)
+  
+  for(i in 1:N){
+    x <- rlogis(n1, mi1, sigma1)
+    s1 <- sd(x)
+    
+    y <- rlogis(n2, mi2, sigma2)
+    s2 <- sd(y)
+    
+    PU_l[i] <- mean(x) - mean(y) - sqrt(sigma1^2/n1 + sigma2^2/n2)*qt
+    PU_p[i] <- mean(x) - mean(y) + sqrt(sigma1^2/n1 + sigma2^2/n2)*qt
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < mi1 - mi2 && mi1 - mi2 < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), mi1 - mi2, mean(PU_l), mean(PU_p)),3))
+}
+n_i_50 <- PU_norm_6(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_6(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+
+l_i_50 <- PU_logis_6(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_6(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+
+results <- data.frame(
+  row.names = c("Norm (i)", "Norm (ii)", "Logis (i)", "Logis(ii)"),
+  SR_Dlugosc = c(n_i_50[1], n_ii_50[1], l_i_50[1], l_ii_50[1]),
+  Prawdopodobienstwo = c(n_i_50[2], n_ii_50[2], l_i_50[2], l_ii_50[2]),
+  Mi1_Mi2 = c(n_i_50[3], n_ii_50[3], l_i_50[3], l_ii_50[3]),
+  Mean_PU_l = round(c(n_i_50[4], n_ii_50[4], l_i_50[4], l_ii_50[4]),3),
+  Mean_PU_p = round(c(n_i_50[5], n_ii_50[5], l_i_50[5], l_ii_50[5]),3)
+)
+
+
+colnames(results) <- c("śr. długość", "Prawdopodobieństwo", "Mu1 - Mu2", "Lewy PU", "Prawy PU")
+# Wyświetlenie tabeli za pomocą knitr
+knitr::kable(results, caption = "Wyniki testów dla różnych przypadków") 
+
+```
+
+Dla rozkładu normalnego wyniki są bardzo podobne, jak w przypadku, gdy znaliśmy wariancję. Średnia długość przedziałów jest nieco dłuższa, co wynika z faktu, że estymujemy wariancję. Prawdopodobieństwo jest minimalnie mniejsze, ale wciąż utrzymuje się na oczekiwanym poziomie, czyli 0.95.   
+Dla rozkładu logistycznego delikatnie większa różnica jeżeli chodzi o zwiększenie średniej długości, ale wyniki również są bardzo podobne, jak w zadaniu 2. Prawdopodobieństwo jest nieco wyższe, plasuje się w obu przypadkach bliżej okolicy 0.73.  
+W obu przypadkach zwiększenie parametru $\sigma$ wpłynęło na zwiększenie długości przedziału, tak jak w zadaniu 2.,ale nie wpływa na prawdopodobieństwo.  
+
+
+
+
+## Zadanie 9
+Niech $X_1, X_2,...X_{n_1}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_1, \sigma^2_1)$ oraz niech $Y_1,, Y_2, ..., Y_{n_2}$ będą niezależnymi zmiennymi losowymi z rozkładu $N(\mu_2, \sigma^2_2)$. Wtedy przedział ufności dla ilorazu dwóch wariancji o nieznanych średniach na poziomie ufności $1 - \alpha$ ma postać:
+
+$$[\frac{s^2_1}{b\cdot s^2_2}  \ ; \ \frac{s^2_1}{a\cdot s^2_2}]$$
+gdzie $s^2_1 = \frac{\sum_{i=1}^{n_1}(X_i - \bar{X})}{n_1 - 1}$, $s^2_2 = \frac{\sum_{i=1}^{n_2}(Y_i - \bar{Y})}{n_2 - 1}$, $a = F^{-1}(\frac{\alpha}2, n_1 - 1, n_2 - 1)$ oraz $b = F^{-1}(1 - \frac{\alpha}2, n_1 - 1, n_2 - 1)$.
+
+## Zadanie 10
+Powtórzę eksperyment numeryczny z zadania 2. na jego podstawie oszacuję prawdopodobieństwo pokrycia nieznanego parametru przez przedział ufności z zadania 9. na poziomie ufności 0.95 oraz jego długość.
+
+```{r, echo = FALSE}
+
+PU_norm_10 <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0,N)
+  PU_p <- rep(0,N)
+ 
+  
+  qt <- qt(1 - alfa/2, df = n1 + n2 - 2)
+  
+  for(i in 1:N){
+    x <- rnorm(n1, mi1, sigma1)
+    s1 <- sqrt(sum((x-mi1)^2)/n1)
+    
+    y <- rnorm(n2, mi2, sigma2)
+    s2 <- sqrt(sum((y-mi2)^2)/n2)
+    
+    PU_l[i] <- s1^2/(s2^2*qf(1-alfa/2, n1-1, n2-1))
+    PU_p[i] <- s1^2/(s2^2*qf(alfa/2, n1-1, n2-1))
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < sigma1^2/sigma2^2 && sigma1^2/sigma2^2 < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), sigma1^2/sigma2^2, mean(PU_l), mean(PU_p)),3))
+}
+
+
+
+PU_logis_10 <- function(N = 10000, n1, mi1, sigma1, n2, mi2, sigma2, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  PU_l <- rep(0,N)
+  PU_p <- rep(0,N)
+
+  
+  qt <- qt(1 - alfa/2, df = n1 + n2 - 2)
+  
+  for(i in 1:N){
+    x <- rlogis(n1, mi1, sigma1)
+    s1 <- sqrt(sum((x-mi1)^2)/n1)
+    
+    y <- rlogis(n2, mi2, sigma2)
+    s2 <- sqrt(sum((y-mi2)^2)/n2)
+    
+    PU_l[i] <- s1^2/(s2^2*qf(1 -alfa/2, n1-1, n2-1))
+    PU_p[i] <- s1^2/(s2^2*qf(alfa/2, n1-1, n2-1))
+    
+    dlugosc_PU[,i] <- PU_p[i] - PU_l[i]
+    if( PU_l[i] < (sigma1^2)/(sigma2^2) && (sigma1^2)/(sigma2^2) < PU_p[i]) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(round(c(sr_dlugosc, round(prawdop, 3), (sigma1^2)/(sigma2^2), mean(PU_l), mean(PU_p)),3))
+}
+
+n_i_50 <- PU_norm_10(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_10(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+
+l_i_50 <- PU_logis_10(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 0, sigma2 = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_10(n1 = 50, mi1 = 0, sigma1 = 1,n2 = 50, mi2 = 1, sigma2 = 2, alfa = 0.05)
+
+
+results <- data.frame(
+  row.names = c("Norm (i)", "Norm (ii)", "Logis (i)", "Logis(ii)"),
+  SR_Dlugosc = c(n_i_50[1], n_ii_50[1], l_i_50[1], l_ii_50[1]),
+  Prawdopodobienstwo = c(n_i_50[2], n_ii_50[2], l_i_50[2], l_ii_50[2]),
+  Mi1_Mi2 = c(n_i_50[3], n_ii_50[3], l_i_50[3], l_ii_50[3]),
+  Mean_PU_l = round(c(n_i_50[4], n_ii_50[4], l_i_50[4], l_ii_50[4]),3),
+  Mean_PU_p = round(c(n_i_50[5], n_ii_50[5], l_i_50[5], l_ii_50[5]),3)
+)
+
+
+colnames(results) <- c("śr. długość", "Prawdopodobieństwo", "var1/var2", "Lewy PU", "Prawy PU")
+# Wyświetlenie tabeli za pomocą knitr
+knitr::kable(results, caption = "Wyniki testów dla różnych przypadków")
+
+```
+
+Dla rozkładu normalnego zastosowanie przedziału ufności dało oczekiwany efekt w obu przypadkach, ponieważ prawdopodobieństwo wynosi około 0.95. To co można ciekawego zauważyć, to fakt, że dla rozkładu o różnych wariancjach średnia długość wyszła o wiele mniejsza. Oznacza to, że istnieje tendencja do tego, że przedział ufności dla rozkładów o mniejszym stosunku wariancji ($0.25 < 1$) będą węższe niż te, dla rozkładów o większym stosunku. Dla rozkładu logistycznego również ta reguła działa. Średnia długość przedziałów wyszła 4 razy mniejsza, to tyle, ile razy stosunek wariancji jest mniejszy.
+W przypadku logistycznego rozkładu prawdopodobieństwo wynosi nieco mniej, bo około 0.89, dla obu przypadków (i) i (ii). 
+
+## Zadanie 12
+
+**Lemat (Metoda delta)**  
+Jeżeli dla ciągu zmiennych losowych $T_n$ mamy $\sqrt{n} \left( T_n - \mu \right) \xrightarrow{d} N\left(0, \sigma^2 \right)$ przy $n \to \infty$ i $h: \mathbb{R} \rightarrow \mathbb{R}$ jest funkcją różniczkowalną w punktcie $\mu$, to
+
+$$\sqrt{n} \left( h(T_n) - h(\mu) \right) \xrightarrow{d} N\left(0, \sigma^2 \left( h'(\mu) \right)^2 \right)$$
+
+
+Metoda $\delta$ polega na wnioskowaniu o rozkładach prawdopodobieństwa próbek statystycznych, gdy liczba obserwacji dąży do nieskończoności. Można to zrobić poprzez analizę zbieżności różnych rodzajów dystrybucji prawdopodobieństwa do innych rozkładów obserwując co się dzieję, gdy wielkość próby rośnie. Jednym z przykładów wykorzystania tej metody jest teoria asymptotycznej zbieżności, pozwala ona na wnioskowanie o własnościach estymatorów statystycznych w granicy, gdy liczba obserwacji wzrasta do nieskończoności. Główne zastosowanie metody $\delta$ w konstrukcji przedziałów ufności jest uzasadnione centralnym twierdzeniem granicznym, które mówi nam, że dla dużego zestawu zmiennych losowych (iid) dowolnego rozkładu jest on przybliżony rozkładem normalnym. Korzystając z tego twierdzenia możemy opracowywać przedział ufności dla różnych parametrów populacji, takich jak w poprzednich zadaniach. 
+

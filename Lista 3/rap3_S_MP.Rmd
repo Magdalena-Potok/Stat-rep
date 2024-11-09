@@ -1,0 +1,1077 @@
+---
+title: "Raport 3"
+author: "Magdalena Potok"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+## Zadanie 1
+
+Przedział ufności dla średniej $\bar{X}$ w modelu normalnym $N(\mu,\sigma^2)$ o znanej wariancji $\sigma^2$ na poziomie ufności $1 - \alpha$ wygląda następująco:  
+$$ [\bar{X} - z^* \frac{\sigma}{\sqrt{n}}\ ;\ \bar{X} + z^* \frac{\sigma}{\sqrt{n}}]$$
+gdzie $\bar{X}$ to średnia próbkowa zmiennych niezależnych $X_1, X_2, ..., X_n$, czyli nieobciążony estymator średniej oczekiwanej, a $z^*$ to kwantyl z rozkładu normalnego rzędu $1-\frac{\alpha}2$. 
+
+## Zadanie 2
+
+W tym zadaniu wygeneruję $n \in \{20, 50, 100\}$ obserwacji z rozkładu:  
+
+__(a)__  normalnego o parametrach: $\mu = 0, \sigma \in \{1,2,3\}$,   
+__(b)__ logistycznego o parametrach: $\mu = 0, \sigma \in \{1,2,3\}$,  
+__(c)__ Cauchy'ego o parametrach: $\mu = 0, \sigma \in \{1,2,3\}$,  
+__(d)__ wykładniczego z parametrem $\lambda \in \{1,1/2,1/3\}$,  
+__(e)__ chi-kwadrat z $\nu$ stopniami swobody: $\nu \in \{1,2,3\}$.  
+Na podstawie tych rozkładów wyznaczę przedziały ufności średniej na poziomie ufności 0.95 omówionego w zadaniu 1. oraz jego długość. Doświadczenie powtórzę 10 000 razy, aby oszacować prawdopodobieństwo pokrycia nieznanej średniej przez przedział ufności oraz jego długość. Wyniki przedstawię w tabeli.
+
+```{r echo=FALSE}
+set.seed(1)
+PU_norm <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qn <- qnorm(1 - alfa/2, 0, 1)
+  
+  for(i in 1:N){
+    x <- rnorm(n, mi, sigma)
+    PU_l <- mean(x) - (sigma/sqrt(n))*qn
+    PU_p <- mean(x) + (sigma/sqrt(n))*qn
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3),PU_l, PU_p))
+}
+
+PU_logis <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qn <- qnorm(1 - alfa/2, 0, 1)
+  
+  for(i in 1:N){
+    x <- rlogis(n, mi, sigma)
+    PU_l <- mean(x) - (sigma/sqrt(n))*qn
+    PU_p <- mean(x) + (sigma/sqrt(n))*qn
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3), PU_l, PU_p))
+}
+
+PU_cauchy <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qn <- qnorm(1 - alfa/2, 0, 1)
+  
+  for(i in 1:N){
+    x <- rcauchy(n, mi, sigma)
+    PU_l <- mean(x) - (sigma/sqrt(n))*qn
+    PU_p <- mean(x) + (sigma/sqrt(n))*qn
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3), PU_l, PU_p))
+}
+
+
+PU_wykl <- function(N = 10000, n, lambda, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qn <- qnorm(1 - alfa/2, 0, 1)
+  
+  for(i in 1:N){
+    sigma <- 1/lambda
+    x <- rexp(n, lambda)
+    PU_l <- mean(x) - (sigma/sqrt(n))*qn
+    PU_p <- mean(x) + (sigma/sqrt(n))*qn
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 1/lambda && 1/lambda < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3), PU_l, PU_p))
+}
+
+PU_chi_kw <- function(N = 10000, n, ni, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  
+  qn <- qnorm(1 - alfa/2, 0, 1)
+  
+  for(i in 1:N){
+    sigma <- sqrt(2*ni)
+    x <- rchisq(n, ni)
+    PU_l <- mean(x) - (sigma/sqrt(n))*qn
+    PU_p <- mean(x) + (sigma/sqrt(n))*qn
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    
+    if( PU_l < ni && ni < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3), PU_l, PU_p))
+}
+```
+
+```{r echo=FALSE}
+n_i_20 <- PU_norm(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_20 <- PU_norm(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_20 <- PU_norm(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_20 <- PU_logis(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_20 <- PU_logis(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_20 <- PU_logis(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_20 <- PU_cauchy(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_20 <- PU_cauchy(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_20 <- PU_cauchy(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_20 <- PU_wykl(n = 20, lambda = 1, alfa = 0.05)
+w_ii_20 <- PU_wykl(n = 20, lambda = 1/2, alfa = 0.05)
+w_iii_20 <- PU_wykl(n = 20, lambda = 1/3, alfa = 0.05)
+
+chkw_i_20 <- PU_chi_kw(n = 20, ni = 1, alfa = 0.05)
+chkw_ii_20 <- PU_chi_kw(n = 20, ni = 2, alfa = 0.05)
+chkw_iii_20 <- PU_chi_kw(n = 20, ni = 3, alfa = 0.05)
+
+n_i_50 <- PU_norm(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_50 <- PU_norm(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_50 <- PU_norm(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_50 <- PU_logis(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_50 <- PU_logis(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_50 <- PU_logis(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_50 <- PU_cauchy(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_50 <- PU_cauchy(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_50 <- PU_cauchy(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_50 <- PU_wykl(n = 50, lambda = 1, alfa = 0.05)
+w_ii_50 <- PU_wykl(n = 50, lambda = 1/2, alfa = 0.05)
+w_iii_50 <- PU_wykl(n = 50, lambda = 1/3, alfa = 0.05)
+
+chkw_i_50 <- PU_chi_kw(n = 50, ni = 1, alfa = 0.05)
+chkw_ii_50 <- PU_chi_kw(n = 50, ni = 2, alfa = 0.05)
+chkw_iii_50 <- PU_chi_kw(n = 50, ni = 3, alfa = 0.05)
+
+n_i_100 <- PU_norm(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_100 <- PU_norm(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_100 <- PU_norm(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_100 <- PU_logis(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_100 <- PU_logis(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_100 <- PU_logis(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_100 <- PU_cauchy(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_100 <- PU_cauchy(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_100 <- PU_cauchy(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_100 <- PU_wykl(n = 100, lambda = 1, alfa = 0.05)
+w_ii_100 <- PU_wykl(n = 100, lambda = 1/2, alfa = 0.05)
+w_iii_100 <- PU_wykl(n = 100, lambda = 1/3, alfa = 0.05)
+
+chkw_i_100 <- PU_chi_kw(n = 100, ni = 1, alfa = 0.05)
+chkw_ii_100 <- PU_chi_kw(n = 100, ni = 2, alfa = 0.05)
+chkw_iii_100 <- PU_chi_kw(n = 100, ni = 3, alfa = 0.05)
+```
+
+
+```{r, echo = FALSE}
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(n_i_20[1], n_i_20[2], n_i_50[1], n_i_50[2], n_i_100[1],n_i_100[2]),
+  'N(0,2)' = c(n_ii_20[1], n_ii_20[2], n_ii_50[1], n_ii_50[2], n_ii_100[1],n_ii_100[2]),
+  'N(0,3)' = c(n_iii_20[1], n_iii_20[2], n_iii_50[1], n_iii_50[2], n_iii_100[1],n_iii_100[2]),
+  'L(0,1)' = c(l_i_20[1], l_i_20[2], l_i_50[1], l_i_50[2], l_i_100[1],l_i_100[2]),
+  'L(0,2)' = c(l_ii_20[1], l_ii_20[2], l_ii_50[1], l_ii_50[2], l_ii_100[1],l_ii_100[2]),
+  'L(0,3)' = c(l_iii_20[1], l_iii_20[2], l_iii_50[1], l_iii_50[2], l_iii_100[1],l_iii_100[2]),
+  'C(0,1)' = c(c_i_20[1], c_i_20[2], c_i_50[1], c_i_50[2], c_i_100[1],c_i_100[2]),
+  'C(0,2)' = c(c_ii_20[1], c_ii_20[2], c_ii_50[1], c_ii_50[2], c_ii_100[1],c_ii_100[2]),
+  'C(0,3)' = c(c_iii_20[1], c_iii_20[2], c_iii_50[1], c_iii_50[2], c_iii_100[1],c_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "N(0,1)", "N(0,2)", "N(0,3)", "L(0,1)", "L(0,2)", "L(0,3)", "C(0,1)", "C(0,2)", "C(0,3)")
+knitr::kable(df)
+
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(w_i_20[1], w_i_20[2], w_i_50[1], w_i_50[2], w_i_100[1],w_i_100[2]),
+  'N(0,2)' = c(w_ii_20[1], w_ii_20[2], w_ii_50[1], w_ii_50[2], w_ii_100[1],w_ii_100[2]),
+  'N(0,3)' = c(w_iii_20[1], w_iii_20[2], w_iii_50[1], w_iii_50[2], w_iii_100[1],w_iii_100[2]),
+  'L(0,1)' = c(chkw_i_20[1], chkw_i_20[2], chkw_i_50[1], chkw_i_50[2], chkw_i_100[1],chkw_i_100[2]),
+  'L(0,2)' = c(chkw_ii_20[1], chkw_ii_20[2], chkw_ii_50[1], chkw_ii_50[2], chkw_ii_100[1],chkw_ii_100[2]),
+  'L(0,3)' = c(chkw_iii_20[1], chkw_iii_20[2], chkw_iii_50[1], chkw_iii_50[2], chkw_iii_100[1],chkw_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "Exp(1)", "Exp(1/2)", "Exp(1/3)", "Chi(1)", "Chi(2)", "Chi(3)")
+knitr::kable(df)
+
+```
+\pagebreak
+
+Z tabelki można zauważyć, że w przypadku każdego z rozkładów długość przedziałów ufności dla średniej się zmniejsza dla coraz większego n. Oznacza to, że z większą ilością próby jesteśmy w stanie precyzyjniej wskazać ten przedział.  
+Dla rozkładu normalnego prawdopodobieństwo w każdym z przypadków wyniosło ok. 0.95, czyli dokłądnie $1-\alpha$, jest to zgodne z naszymi oczekiwaniami, bo właśnie tyle wynosi pewność, że rzeczywisty parametr dla rozkłądu normalnego znajduje się w przedziale ufności o poziomie istotności $\alpha =0.05$. Można również zauważyć, że dla rozkładu normalnego, logistycznego oraz Cauchy'ego wzrost skali $\sigma$ powoduje wydłużenie przedziału ufności, co jest logiczne, ponieważ ten parametr odpowiada za rozrzut obserwacji, a co za tym idzie, mniej precyzyjniej jesteśmy w stanie oszacować średnią naszej próby.  
+Prawdopodobieństwo, że przedział ufności pokryje prawdziwą wartość średniej próby dla rozkładu logistycznego wynosi, dla każdej wielkości próby, około 0.722, jest to mniej niż dla rozkładu normalnego. Wynika to z asymetrycznego charakteru rozkładu logistycznego.  
+Dla rozkładu Cauchy'ego to prawdopodobieństwo wychodzi najniższe ze wszystkich, wynika to z tego, że ten rozkład charakteryzuje się szerokimi ogonami. Sprawia to, że estymacja przedziału ufności jest trudniejsza. Można też zauważyć, że ze wzrostem próby to prawdopodobieństwo maleje.  
+W przypadku rozkładów wykładniczego oraz chi-kwadrat zmniejszenie parametru $\lambda$ i wzrost parametru $\nu$ również powoduje zwiększenie długości przedziałów. Wzrost próby, zgodnie z nasyzmi oczekiwaniami, zwęża przedziały ufności. Dla każdego z przypadku tych rozkładów prawodpodobieństwo zawarcia średniej w przedziale wynosi około 0.95, tak jak dla rozkładu normalnego. 
+
+## Zadanie 3
+
+Przedział ufności dla średniej w modelu normalnym o nieznanej wariancji na poziomie ufności $1 - \alpha$ konstruujemy przy użyciu przedziału ufności opartego na rozkładzie t-Studenta. Wygląda on tak:  
+$$ [\bar{X} - t^* \frac{s}{\sqrt{n}}\ ;\ \bar{X} + t^* \frac{s}{\sqrt{n}}]$$
+gdzie $\bar{X}$ to średnia próbkowa niezazleżnych zmiennych $X_1, X_2, ... , X_n$ pochodzących z rozkładu normalnego $N(\mu, \sigma^2)$, $s^2$ to próbkowa wariancja, czyli s to nieobciążony estymator $\sigma$, a $t^*$ to kwantyl rozkładu t-Studenta z n-1 stopniami swobody i rzędu $1-\frac{\alpha}{2}$. Przedział ten bazuje na założeniu, że próbka ma rozkład normalny, a wariancja jest nieznana. Zastosowanie rozkładu t-Studenta uwzględnia większą niepewność związanąn z estymacją wariancji.
+
+## Zadanie 4
+W tym zadaniu powtórzę eksperyment z zadania 2., tym razem oszacuję prawodpodobieństwo pokrycia nieznanej średniej przez przedział ufności z zadania 3. na poziomie ufności 0.95 oraz jego długość.
+```{r echo=FALSE}
+PU_norm_4 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qt <- qt(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rnorm(n, mi, sigma)
+    s <- sd(x)
+    PU_l <- mean(x) - (s/sqrt(n))*qt
+    PU_p <- mean(x) + (s/sqrt(n))*qt
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_logis_4 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qt <- qt(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rlogis(n, mi, sigma)
+    s <- sd(x)
+    PU_l <- mean(x) - (s/sqrt(n))*qt
+    PU_p <- mean(x) + (s/sqrt(n))*qt
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_cauchy_4 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qt <- qt(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rcauchy(n, mi, sigma)
+    s <- sd(x)
+    PU_l <- mean(x) - (s/sqrt(n))*qt
+    PU_p <- mean(x) + (s/sqrt(n))*qt
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < mi && mi < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_wykl_4 <- function(N = 10000, n, lambda, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qt <- qt(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rexp(n, lambda)
+    s <- sd(x)
+    PU_l <- mean(x) - (s/sqrt(n))*qt
+    PU_p <- mean(x) + (s/sqrt(n))*qt
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 1/lambda && 1/lambda < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_chi_kw_4 <- function(N = 10000, n, ni, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  qt <- qt(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rchisq(n, ni)
+    s <- sd(x)
+    PU_l <- mean(x) - (s/sqrt(n))*qt
+    PU_p <- mean(x) + (s/sqrt(n))*qt
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < ni && ni < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+```
+
+```{r echo=FALSE}
+n_i_20 <- PU_norm_4(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_20 <- PU_norm_4(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_20 <- PU_norm_4(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_20 <- PU_logis_4(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_20 <- PU_logis_4(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_20 <- PU_logis_4(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_20 <- PU_cauchy_4(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_20 <- PU_cauchy_4(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_20 <- PU_cauchy_4(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_20 <- PU_wykl_4(n = 20, lambda = 1, alfa = 0.05)
+w_ii_20 <- PU_wykl_4(n = 20, lambda = 1/2, alfa = 0.05)
+w_iii_20 <- PU_wykl_4(n = 20, lambda = 1/3, alfa = 0.05)
+
+chkw_i_20 <- PU_chi_kw_4(n = 20, ni = 1, alfa = 0.05)
+chkw_ii_20 <- PU_chi_kw_4(n = 20, ni = 2, alfa = 0.05)
+chkw_iii_20 <- PU_chi_kw_4(n = 20, ni = 3, alfa = 0.05)
+
+n_i_50 <- PU_norm_4(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_4(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_50 <- PU_norm_4(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_50 <- PU_logis_4(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_4(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_50 <- PU_logis_4(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_50 <- PU_cauchy_4(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_50 <- PU_cauchy_4(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_50 <- PU_cauchy_4(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_50 <- PU_wykl_4(n = 50, lambda = 1, alfa = 0.05)
+w_ii_50 <- PU_wykl_4(n = 50, lambda = 1/2, alfa = 0.05)
+w_iii_50 <- PU_wykl_4(n = 50, lambda = 1/3, alfa = 0.05)
+
+chkw_i_50 <- PU_chi_kw_4(n = 50, ni = 1, alfa = 0.05)
+chkw_ii_50 <- PU_chi_kw_4(n = 50, ni = 2, alfa = 0.05)
+chkw_iii_50 <- PU_chi_kw_4(n = 50, ni = 3, alfa = 0.05)
+
+n_i_100 <- PU_norm_4(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_100 <- PU_norm_4(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_100 <- PU_norm_4(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_100 <- PU_logis_4(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_100 <- PU_logis_4(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_100 <- PU_logis_4(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_100 <- PU_cauchy_4(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_100 <- PU_cauchy_4(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_100 <- PU_cauchy_4(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_100 <- PU_wykl_4(n = 100, lambda = 1, alfa = 0.05)
+w_ii_100 <- PU_wykl_4(n = 100, lambda = 1/2, alfa = 0.05)
+w_iii_100 <- PU_wykl_4(n = 100, lambda = 1/3, alfa = 0.05)
+
+chkw_i_100 <- PU_chi_kw_4(n = 100, ni = 1, alfa = 0.05)
+chkw_ii_100 <- PU_chi_kw_4(n = 100, ni = 2, alfa = 0.05)
+chkw_iii_100 <- PU_chi_kw_4(n = 100, ni = 3, alfa = 0.05)
+```
+
+```{r, echo = FALSE}
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(n_i_20[1], n_i_20[2], n_i_50[1], n_i_50[2], n_i_100[1],n_i_100[2]),
+  'N(0,2)' = c(n_ii_20[1], n_ii_20[2], n_ii_50[1], n_ii_50[2], n_ii_100[1],n_ii_100[2]),
+  'N(0,3)' = c(n_iii_20[1], n_iii_20[2], n_iii_50[1], n_iii_50[2], n_iii_100[1],n_iii_100[2]),
+  'L(0,1)' = c(l_i_20[1], l_i_20[2], l_i_50[1], l_i_50[2], l_i_100[1],l_i_100[2]),
+  'L(0,2)' = c(l_ii_20[1], l_ii_20[2], l_ii_50[1], l_ii_50[2], l_ii_100[1],l_ii_100[2]),
+  'L(0,3)' = c(l_iii_20[1], l_iii_20[2], l_iii_50[1], l_iii_50[2], l_iii_100[1],l_iii_100[2]),
+  'C(0,1)' = c(c_i_20[1], c_i_20[2], c_i_50[1], c_i_50[2], c_i_100[1],c_i_100[2]),
+  'C(0,2)' = c(c_ii_20[1], c_ii_20[2], c_ii_50[1], c_ii_50[2], c_ii_100[1],c_ii_100[2]),
+  'C(0,3)' = c(c_iii_20[1], c_iii_20[2], c_iii_50[1], c_iii_50[2], c_iii_100[1],c_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "N(0,1)", "N(0,2)", "N(0,3)", "L(0,1)", "L(0,2)", "L(0,3)", "C(0,1)", "C(0,2)", "C(0,3)")
+knitr::kable(df)
+
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(w_i_20[1], w_i_20[2], w_i_50[1], w_i_50[2], w_i_100[1],w_i_100[2]),
+  'N(0,2)' = c(w_ii_20[1], w_ii_20[2], w_ii_50[1], w_ii_50[2], w_ii_100[1],w_ii_100[2]),
+  'N(0,3)' = c(w_iii_20[1], w_iii_20[2], w_iii_50[1], w_iii_50[2], w_iii_100[1],w_iii_100[2]),
+  'L(0,1)' = c(chkw_i_20[1], chkw_i_20[2], chkw_i_50[1], chkw_i_50[2], chkw_i_100[1],chkw_i_100[2]),
+  'L(0,2)' = c(chkw_ii_20[1], chkw_ii_20[2], chkw_ii_50[1], chkw_ii_50[2], chkw_ii_100[1],chkw_ii_100[2]),
+  'L(0,3)' = c(chkw_iii_20[1], chkw_iii_20[2], chkw_iii_50[1], chkw_iii_50[2], chkw_iii_100[1],chkw_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "Exp(1)", "Exp(1/2)", "Exp(1/3)", "Chi(1)", "Chi(2)", "Chi(3)")
+knitr::kable(df)
+
+```
+Porównując do wyników z zadania 2. wszystkie przedziału ufności są szersze (mają większą długość). Wynika to z tego, że te przedziały ufności uwzględniają większą niepewność związaną z estymacją wariancji. Najbardziej wyróżniającymi wynikami są długości przedziałów dla rozkładu Cauchy'ego, wynika to z tego, że bardzo ciężko oszacować wariancje tego rozkładu na podstawie próby. Wszystkie prawdopodobieństwa zbliżyły się do wartości 0.95, czyli dla rozkładu logistycznego oraz Cauchy'ego znacząco te wartości się zwiększyły. Wynika to ze zwiększenia się tych przedziałów, im większe one są, tym większe prawdopodobieństwo, że średnia się w nich znajdzie.
+
+## Zadanie 5
+
+Przedział ufności wariancji w modelu normalnym o znanej średniej na poziomie ufności $1-\alpha$ kontruujemy w następujący sposób:
+$$[\frac{n}{\chi^2_{\alpha/2}}s^2 \ ; \ \frac{n}{\chi^2_{1-\alpha/2}}s^2]$$
+gdzie $s^2$ to próbkowa wariancja, $\chi^2_{\alpha/2}$ to kwantyl rzędu $\frac{\alpha}2$ z rozkładu chi-kwadrat o n stopniach swobody, a $\chi^2_{1-\alpha/2}$
+to kwantyl tego samego rozkładu rzędu $1 -\frac{\alpha}2$. Przedział ten zapewnia nam pewność, że prawdziwa wariancja mieści się w nim z prawdopodobieństwem $1-\alpha$.
+
+## Zadanie 6
+W tym zadaniu powtórzyłam eksperyment z zadania 2., na jego podstawie oszacuję prawdopodobieństwo pokrycia nieznanej wariancji przez przedziały ufnośći z zadania 5. na poziomie ufności 0.95 oraz jego długość.
+
+```{r echo=FALSE}
+PU_norm_6 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n)
+  b <- qchisq(1 - alfa/2, df = n)
+  
+  for(i in 1:N){
+    x <- rnorm(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/n
+    PU_l <- (n/b)*s2 
+    PU_p <- (n/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_logis_6 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n)
+  b <- qchisq(1 - alfa/2, df = n)
+  
+  for(i in 1:N){
+    x <- rlogis(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/n
+    PU_l <- (n/b)*s2 
+    PU_p <- (n/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_cauchy_6 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n)
+  b <- qchisq(1 - alfa/2, df = n)
+  
+  for(i in 1:N){
+    x <- rcauchy(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/n
+    PU_l <- (n/b)*s2 
+    PU_p <- (n/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(as.numeric(sr_dlugosc), as.numeric(prawdop)))
+}
+
+PU_wykl_6 <- function(N = 10000, n, lambda, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n)
+  b <- qchisq(1 - alfa/2, df = n)
+  
+  for(i in 1:N){
+    x <- rexp(n, lambda)
+    s2 <- sum((x - 1/lambda)^2)/n
+    PU_l <- (n/b)*s2 
+    PU_p <- (n/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 1/lambda^2 && 1/lambda^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_chi_kw_6 <- function(N = 10000, n, ni, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n)
+  b <- qchisq(1 - alfa/2, df = n)
+  
+  for(i in 1:N){
+    x <- rchisq(n, ni)
+    s2 <- sum((x - ni)^2)/n
+    PU_l <- (n/b)*s2 
+    PU_p <- (n/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 2*ni && 2*ni < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+```
+
+```{r echo=FALSE}
+n_i_20 <- PU_norm_6(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_20 <- PU_norm_6(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_20 <- PU_norm_6(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_20_ <- PU_logis_6(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_20 <- PU_logis_6(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_20<- PU_logis_6(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_20 <- as.numeric(PU_cauchy_6(n = 20, mi = 0, sigma = 1, alfa = 0.05))
+c_ii_20 <- round(PU_cauchy_6(n = 20, mi = 0, sigma = 2, alfa = 0.05),3)
+c_iii_20 <- round(PU_cauchy_6(n = 20, mi = 0, sigma = 3, alfa = 0.05),3)
+
+w_i_20 <- PU_wykl_6(n = 20, lambda = 1, alfa = 0.05)
+w_ii_20 <- PU_wykl_6(n = 20, lambda = 1/2, alfa = 0.05)
+w_iii_20 <- PU_wykl_6(n = 20, lambda = 1/3, alfa = 0.05)
+
+chkw_i_20 <- PU_chi_kw_6(n = 20, ni = 1, alfa = 0.05)
+chkw_ii_20 <- PU_chi_kw_6(n = 20, ni = 2, alfa = 0.05)
+chkw_iii_20 <- PU_chi_kw_6(n = 20, ni = 3, alfa = 0.05)
+
+n_i_50 <- PU_norm_6(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_6(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_50 <- PU_norm_6(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_50 <- PU_logis_6(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_6(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_50 <- PU_logis_6(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_50 <- round(PU_cauchy_6(n = 50, mi = 0, sigma = 1, alfa = 0.05),3)
+c_ii_50 <- round(PU_cauchy_6(n = 50, mi = 0, sigma = 2, alfa = 0.05),3)
+c_iii_50 <- round(PU_cauchy_6(n = 50, mi = 0, sigma = 3, alfa = 0.05),3)
+
+w_i_50 <- PU_wykl_6(n = 50, lambda = 1, alfa = 0.05)
+w_ii_50 <- PU_wykl_6(n = 50, lambda = 1/2, alfa = 0.05)
+w_iii_50 <- PU_wykl_6(n = 50, lambda = 1/3, alfa = 0.05)
+
+chkw_i_50 <- PU_chi_kw_6(n = 50, ni = 1, alfa = 0.05)
+chkw_ii_50 <- PU_chi_kw_6(n = 50, ni = 2, alfa = 0.05)
+chkw_iii_50 <- PU_chi_kw_6(n = 50, ni = 3, alfa = 0.05)
+
+n_i_100 <- PU_norm_6(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_100 <- PU_norm_6(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_100 <- PU_norm_6(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_100 <- PU_logis_6(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_100 <- PU_logis_6(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_100 <- PU_logis_6(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_100 <- round(PU_cauchy_6(n = 100, mi = 0, sigma = 1, alfa = 0.05),3)
+c_ii_100 <- round(PU_cauchy_6(n = 100, mi = 0, sigma = 2, alfa = 0.05),3)
+c_iii_100 <- round(PU_cauchy_6(n = 100, mi = 0, sigma = 3, alfa = 0.05),3)
+
+w_i_100 <- PU_wykl_6(n = 100, lambda = 1, alfa = 0.05)
+w_ii_100 <- PU_wykl_6(n = 100, lambda = 1/2, alfa = 0.05)
+w_iii_100 <- PU_wykl_6(n = 100, lambda = 1/3, alfa = 0.05)
+
+chkw_i_100 <- PU_chi_kw_6(n = 100, ni = 1, alfa = 0.05)
+chkw_ii_100 <- PU_chi_kw_6(n = 100, ni = 2, alfa = 0.05)
+chkw_iii_100 <- PU_chi_kw_6(n = 100, ni = 3, alfa = 0.05)
+```
+
+```{r, echo = FALSE}
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(n_i_20[1], n_i_20[2], n_i_50[1], n_i_50[2], n_i_100[1],n_i_100[2]),
+  'N(0,2)' = c(n_ii_20[1], n_ii_20[2], n_ii_50[1], n_ii_50[2], n_ii_100[1],n_ii_100[2]),
+  'N(0,3)' = c(n_iii_20[1], n_iii_20[2], n_iii_50[1], n_iii_50[2], n_iii_100[1],n_iii_100[2]),
+  'L(0,1)' = c(l_i_20[1], l_i_20[2], l_i_50[1], l_i_50[2], l_i_100[1],l_i_100[2]),
+  'L(0,2)' = c(l_ii_20[1], l_ii_20[2], l_ii_50[1], l_ii_50[2], l_ii_100[1],l_ii_100[2]),
+  'L(0,3)' = c(l_iii_20[1], l_iii_20[2], l_iii_50[1], l_iii_50[2], l_iii_100[1],l_iii_100[2]),
+  'C(0,1)' = c("258374.4", "0.0141", c_i_50[1], c_i_50[2], c_i_100[1],c_i_100[2]),
+  'C(0,2)' = c(c_ii_20[1], c_ii_20[2], c_ii_50[1], c_ii_50[2], c_ii_100[1],c_ii_100[2]),
+  'C(0,3)' = c(c_iii_20[1], "0.0141", c_iii_50[1], c_iii_50[2], c_iii_100[1],c_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "N(0,1)", "N(0,2)", "N(0,3)", "L(0,1)", "L(0,2)", "L(0,3)", "C(0,1)", "C(0,2)", "C(0,3)")
+knitr::kable(df)
+
+x <-  2.583744e+05
+rounded_x <- round(as.numeric(x))
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(w_i_20[1], w_i_20[2], w_i_50[1], w_i_50[2], w_i_100[1],w_i_100[2]),
+  'N(0,2)' = c(w_ii_20[1], w_ii_20[2], w_ii_50[1], w_ii_50[2], w_ii_100[1],w_ii_100[2]),
+  'N(0,3)' = c(w_iii_20[1], w_iii_20[2], w_iii_50[1], w_iii_50[2], w_iii_100[1],w_iii_100[2]),
+  'L(0,1)' = c(chkw_i_20[1], chkw_i_20[2], chkw_i_50[1], chkw_i_50[2], chkw_i_100[1],chkw_i_100[2]),
+  'L(0,2)' = c(chkw_ii_20[1], chkw_ii_20[2], chkw_ii_50[1], chkw_ii_50[2], chkw_ii_100[1],chkw_ii_100[2]),
+  'L(0,3)' = c(chkw_iii_20[1], chkw_iii_20[2], chkw_iii_50[1], chkw_iii_50[2], chkw_iii_100[1],chkw_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "Exp(1)", "Exp(1/2)", "Exp(1/3)", "Chi(1)", "Chi(2)", "Chi(3)")
+knitr::kable(df)
+
+```
+To co można z tabelki wyczytać, to fak, że w rozkładach normalnym, logistycznym oraz Cauchy'ego dla każdej wielkości próby, wzrost $\sigma$ powoduje zwiększenie przedziału ufności dla wariancji. W rozkładzie normalnym prawdopodobieństwo utrzymuje się tak, jak w poprzednich przedziałach ufności, czyli ok. 0.95. Dla rozkładu logistycznego wraz z zwiększaniem się parametru $\sigma$ to prawdopodobieństwo maleje oraz wraz z większaniem się rozmiaru próbki, dla n = 50 i n = 100 to prawdopodobieństwo jest znikome. W przypadku rozkładu Cauchy'ego ma on najniższe prawdopodobieństwo z całej tabelki, dla n = 50 i n = 100 wynosi po prostu 0, a dla n = 20 jest bardzo małe, bliskie 0. Długość przedizału dla rozkładów wykładniczego oraz chi-kwadrat również zależy od ich parametrów. W przypadku wykładniczego zmniejszenie się parametru $\lambda$ powoduje zwiększanie długości przedziału, a dla chi-kwadrat zwiększanie parametru $\nu$ daje ten sam efekt, czyli szerszy przedział. Zwiększanie próby w obu tych przedziałach wpływa na prawdopodobieństwo tego, czy prawdziwa wariancja należy do przeedziału ufności w taki sposób, że to prawdopodobieństwo maleje. Ale nie jest to tak niski wynik, jak w przypadku rozkładu logistycznego lub Cauchy'ego, bo plasuje się w okolicach 0.7, co jest satysfakcjonującym wynikiem. 
+
+
+## Zadanie 7
+
+Przedział ufności dla wariancji w modelu normalnym o nieznanej średniej na poziomie ufności $1-\alpha$ wygląda następująco:
+$$[\frac{n-1}{\chi^2_{\alpha/2}}s^2 \ ; \ \frac{n-1}{\chi^2_{1-\alpha/2}}s^2]$$
+gdzie $s^2$ to próbkowa wariancja, $\chi^2_{\alpha/2}$ to kwantyl rzędu $\frac{\alpha}2$ z rozkładu chi-kwadrat o n stopniach swobody, a $\chi^2_{1-\alpha/2}$
+to kwantyl tego samego rozkładu rzędu $1 -\frac{\alpha}2$. Przedział ten zapewnia nam pewność, że prawdziwa wariancja mieści się w nim z prawdopodobieństwem $1-\alpha$.
+
+
+## Zadanie 8
+
+Powtórzę ponownie eksepryment z zadania 2., na jego podstawie oszacuję prawdopodobieństwo pokrycia nieznanej wariancji przez przedział ufności z zadania 7. na poziomie ufności 0.95 oraz jego długość.
+
+```{r echo=FALSE}
+PU_norm_8 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n - 1)
+  b <- qchisq(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rnorm(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/(n - 1)
+    PU_l <- ((n - 1)/b)*s2 
+    PU_p <- ((n - 1)/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_logis_8 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n - 1)
+  b <- qchisq(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rlogis(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/(n - 1)
+    PU_l <- ((n - 1)/b)*s2 
+    PU_p <- ((n - 1)/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_cauchy_8 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n - 1)
+  b <- qchisq(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rcauchy(n, mi, sigma)
+    s2 <- sum((x - mi)^2)/(n - 1)
+    PU_l <- ((n - 1)/b)*s2 
+    PU_p <- ((n - 1)/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < sigma^2 && sigma^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_wykl_8 <- function(N = 10000, n, lambda, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n - 1)
+  b <- qchisq(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rexp(n, lambda)
+    s2 <- sum((x - 1/lambda)^2)/(n - 1)
+    PU_l <- ((n - 1)/b)*s2 
+    PU_p <- ((n - 1)/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 1/lambda^2 && 1/lambda^2 < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_chi_kw_8 <- function(N = 10000, n, ni, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  a <- qchisq(alfa/2, df = n - 1)
+  b <- qchisq(1 - alfa/2, df = n - 1)
+  
+  for(i in 1:N){
+    x <- rchisq(n, ni)
+    s2 <- sum((x - ni)^2)/(n - 1)
+    PU_l <- ((n - 1)/b)*s2 
+    PU_p <- ((n - 1)/a)*s2
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < 2*ni && 2*ni < PU_p) czestosci[,i] <- 1 else czestosci[,1] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+```
+
+```{r echo=FALSE}
+n_i_20 <- PU_norm_8(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_20 <- PU_norm_8(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_20 <- PU_norm_8(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_20 <- PU_logis_8(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_20 <- PU_logis_8(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_20 <- PU_logis_8(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_20 <- PU_cauchy_8(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_20 <- PU_cauchy_8(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_20 <- PU_cauchy_8(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_20 <- PU_wykl_8(n = 20, lambda = 1, alfa = 0.05)
+w_ii_20 <- PU_wykl_8(n = 20, lambda = 1/2, alfa = 0.05)
+w_iii_20 <- PU_wykl_8(n = 20, lambda = 1/3, alfa = 0.05)
+
+chkw_i_20 <- PU_chi_kw_8(n = 20, ni = 1, alfa = 0.05)
+chkw_ii_20 <- PU_chi_kw_8(n = 20, ni = 2, alfa = 0.05)
+chkw_iii_20 <- PU_chi_kw_8(n = 20, ni = 3, alfa = 0.05)
+
+n_i_50 <- PU_norm_8(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_8(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_50 <- PU_norm_8(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_50 <- PU_logis_8(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_8(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_50 <- PU_logis_8(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_50 <- PU_cauchy_8(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_50 <- PU_cauchy_8(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_50 <- PU_cauchy_8(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_50 <- PU_wykl_8(n = 50, lambda = 1, alfa = 0.05)
+w_ii_50 <- PU_wykl_8(n = 50, lambda = 1/2, alfa = 0.05)
+w_iii_50 <- PU_wykl_8(n = 50, lambda = 1/3, alfa = 0.05)
+
+chkw_i_50 <- PU_chi_kw_8(n = 50, ni = 1, alfa = 0.05)
+chkw_ii_50 <- PU_chi_kw_8(n = 50, ni = 2, alfa = 0.05)
+chkw_iii_50 <- PU_chi_kw_8(n = 50, ni = 3, alfa = 0.05)
+
+n_i_100 <- PU_norm_8(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_100 <- PU_norm_8(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_100 <- PU_norm_8(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_100 <- PU_logis_8(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_100 <- PU_logis_8(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_100 <- PU_logis_8(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_100 <- PU_cauchy_8(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_100 <- PU_cauchy_8(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_100 <- PU_cauchy_8(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+w_i_100 <- PU_wykl_8(n = 100, lambda = 1, alfa = 0.05)
+w_ii_100 <- PU_wykl_8(n = 100, lambda = 1/2, alfa = 0.05)
+w_iii_100 <- PU_wykl_8(n = 100, lambda = 1/3, alfa = 0.05)
+
+chkw_i_100 <- PU_chi_kw_8(n = 100, ni = 1, alfa = 0.05)
+chkw_ii_100 <- PU_chi_kw_8(n = 100, ni = 2, alfa = 0.05)
+chkw_iii_100 <- PU_chi_kw_8(n = 100, ni = 3, alfa = 0.05)
+```
+
+```{r, echo = FALSE}
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(n_i_20[1], n_i_20[2], n_i_50[1], n_i_50[2], n_i_100[1],n_i_100[2]),
+  'N(0,2)' = c(n_ii_20[1], n_ii_20[2], n_ii_50[1], n_ii_50[2], n_ii_100[1],n_ii_100[2]),
+  'N(0,3)' = c(n_iii_20[1], n_iii_20[2], n_iii_50[1], n_iii_50[2], n_iii_100[1],n_iii_100[2]),
+  'L(0,1)' = c(l_i_20[1], l_i_20[2], l_i_50[1], l_i_50[2], l_i_100[1],l_i_100[2]),
+  'L(0,2)' = c(l_ii_20[1], l_ii_20[2], l_ii_50[1], l_ii_50[2], l_ii_100[1],l_ii_100[2]),
+  'L(0,3)' = c(l_iii_20[1], l_iii_20[2], l_iii_50[1], l_iii_50[2], l_iii_100[1],l_iii_100[2]),
+  'C(0,1)' = c(c_i_20[1], c_i_20[2], c_i_50[1], c_i_50[2], c_i_100[1],c_i_100[2]),
+  'C(0,2)' = c(c_ii_20[1], c_ii_20[2], c_ii_50[1], c_ii_50[2], c_ii_100[1],c_ii_100[2]),
+  'C(0,3)' = c(c_iii_20[1], c_iii_20[2], c_iii_50[1], c_iii_50[2], c_iii_100[1],c_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "N(0,1)", "N(0,2)", "N(0,3)", "L(0,1)", "L(0,2)", "L(0,3)", "C(0,1)", "C(0,2)", "C(0,3)")
+knitr::kable(df)
+
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(w_i_20[1], w_i_20[2], w_i_50[1], w_i_50[2], w_i_100[1],w_i_100[2]),
+  'N(0,2)' = c(w_ii_20[1], w_ii_20[2], w_ii_50[1], w_ii_50[2], w_ii_100[1],w_ii_100[2]),
+  'N(0,3)' = c(w_iii_20[1], w_iii_20[2], w_iii_50[1], w_iii_50[2], w_iii_100[1],w_iii_100[2]),
+  'L(0,1)' = c(chkw_i_20[1], chkw_i_20[2], chkw_i_50[1], chkw_i_50[2], chkw_i_100[1],chkw_i_100[2]),
+  'L(0,2)' = c(chkw_ii_20[1], chkw_ii_20[2], chkw_ii_50[1], chkw_ii_50[2], chkw_ii_100[1],chkw_ii_100[2]),
+  'L(0,3)' = c(chkw_iii_20[1], chkw_iii_20[2], chkw_iii_50[1], chkw_iii_50[2], chkw_iii_100[1],chkw_iii_100[2])
+
+)
+colnames(df) <- c("n"," ", "Exp(1)", "Exp(1/2)", "Exp(1/3)", "Chi(1)", "Chi(2)", "Chi(3)")
+knitr::kable(df)
+
+```
+
+Porównując do poprzedniego zadania, gdzie konstruowaliśmy przedziały ufności wariancji przy znanej średniej, to tym razem średnie długości przedziałów wyszły większe. Wynika to z niepewności związanej z estymacją wariancji. Zwiększanie próbki, w każdym z rozkładów, powoduje zwężenie przedziału ufności. Takie same wnioski, co do zmian parametru i wpływu jego na długość przedziało, co w zadaniu 6. To samo można powiedzieć o prawdopodobieństwie, w rozkładzie normalnym mamy oczekiwaną wartość 0.95, w rozkładzie logistycznym dla większych n to prawdopodobieństwo jest bardzo małe, bliskie 0. W rozkładach chi-kwadrat oraz wykłądniczym plasuje się w okolicach 0.7 dla każdej wielkości próby. Natomiast najmniejsze, znikome prawdopodobieństwo jest dla rozkładu Cauchy'ego, czyli dokładnie jest tak samo, jak w przypadku, gdy znaliśmy średnią. 
+
+## Zadanie 9
+
+Podam asymptotyczny przedział ufności dla proporcji na poziomie ufności $1-\alpha$.
+$$[\hat{p}-z_{1-\alpha/2}\sqrt{\frac{\hat{p}(1-\hat{p})}{n}} \ ;\hat{p}+z_{1 -\alpha/2}\sqrt{\frac{\hat{p}(1-\hat{p})}{n}}]$$
+gdzie $\hat{p}$ to estymator proporcji, $z_{1-\alpha/2}$ to kwantyl rozkłądu normalnego rzędu $1-\frac{\alpha}2$, n to wielkość próby.
+
+
+## Zadanie 10
+
+Powtórzę eksperyment z zadania 2. dla podpunktów a, b i c. Na jego podstawie oszacuje prawdopodobieństwo pokrycia neiznanej proporcji dodatnich obserwacji przez przedział ufności z zadania 9. na poziomie ufności 0.95 oraz jego długość.
+
+```{r echo=FALSE}
+PU_norm_10 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  z <- qnorm(1 - alfa/2, 0, 1)
+  p <- 0.5
+  
+  for(i in 1:N){
+    x <- rnorm(n, mi, sigma)
+    
+    Y <- matrix(0, 1, n)
+    for(j in 1:n){
+      if(x[j] > 0) Y[,j] <- 1 else Y[,j] <- 0
+    }
+  
+    p_hat <- sum(Y)/n
+    
+    PU_l <- p_hat - z*(sqrt(p_hat*(1 - p_hat)/n))
+    PU_p <- p_hat + z*(sqrt(p_hat*(1 - p_hat)/n))
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if(PU_l < p && p < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_logis_10 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  z <- qnorm(1 - alfa/2, 0, 1)
+  p <- 0.5
+  
+  for(i in 1:N){
+    x <- rlogis(n, mi, sigma)
+    
+    Y <- matrix(0, 1, n)
+    for(j in 1:n){
+      if(x[j] > 0) Y[,j] <- 1 else Y[,j] <- 0
+    }
+  
+    p_hat <- sum(Y)/n
+    
+    PU_l <- p_hat - z*(sqrt(p_hat*(1 - p_hat)/n))
+    PU_p <- p_hat + z*(sqrt(p_hat*(1 - p_hat)/n))
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < p && p < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+
+PU_cauchy_10 <- function(N = 10000, n, mi, sigma, alfa){
+  czestosci <- matrix(0, 1, N)
+  dlugosc_PU <- matrix(0, 1, N)
+  
+  z <- qnorm(1 - alfa/2, 0, 1)
+  p <- 0.5
+  
+  for(i in 1:N){
+    x <- rcauchy(n, mi, sigma)
+    
+    Y <- matrix(0, 1, n)
+    for(j in 1:n){
+      if(x[j] > 0) Y[,j] <- 1 else Y[,j] <- 0
+    }
+  
+    p_hat <- sum(Y)/n
+    
+    PU_l <- p_hat - z*(sqrt(p_hat*(1 - p_hat)/n))
+    PU_p <- p_hat + z*(sqrt(p_hat*(1 - p_hat)/n))
+    
+    dlugosc_PU[,i] <- PU_p - PU_l
+    if( PU_l < p && p < PU_p) czestosci[,i] <- 1 else czestosci[,i] <- 0
+  }
+  
+  sr_dlugosc <- mean(dlugosc_PU)
+  prawdop <-  mean(czestosci)
+                      
+  return(c(round(sr_dlugosc, 3), round(prawdop, 3)))
+}
+```
+
+```{r echo=FALSE}
+n_i_20 <- PU_norm_10(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_20 <- PU_norm_10(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_20 <- PU_norm_10(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_20 <- PU_logis_10(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_20 <- PU_logis_10(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_20 <- PU_logis_10(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_20 <- PU_cauchy_10(n = 20, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_20 <- PU_cauchy_10(n = 20, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_20 <- PU_cauchy_10(n = 20, mi = 0, sigma = 3, alfa = 0.05)
+
+n_i_50 <- PU_norm_10(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_50 <- PU_norm_10(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_50 <- PU_norm_10(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_50 <- PU_logis_10(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_50 <- PU_logis_10(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_50 <- PU_logis_10(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_50 <- PU_cauchy_10(n = 50, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_50 <- PU_cauchy_10(n = 50, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_50 <- PU_cauchy_10(n = 50, mi = 0, sigma = 3, alfa = 0.05)
+
+n_i_100 <- PU_norm_10(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+n_ii_100 <- PU_norm_10(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+n_iii_100 <- PU_norm_10(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+l_i_100 <- PU_logis_10(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+l_ii_100 <- PU_logis_10(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+l_iii_100 <- PU_logis_10(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+
+c_i_100 <- PU_cauchy_10(n = 100, mi = 0, sigma = 1, alfa = 0.05)
+c_ii_100 <- PU_cauchy_10(n = 100, mi = 0, sigma = 2, alfa = 0.05)
+c_iii_100 <- PU_cauchy_10(n = 100, mi = 0, sigma = 3, alfa = 0.05)
+```
+
+```{r, echo = FALSE}
+df <- data.frame(
+  n = c(20,20,50,50,100,100),
+  Typ = c("dł", "prawd","dł", "prawd","dł", "prawd"),
+  'N(0,1)' = c(n_i_20[1], n_i_20[2], n_i_50[1], n_i_50[2], n_i_100[1],n_i_100[2]),
+  'N(0,2)' = c(n_ii_20[1], n_ii_20[2], n_ii_50[1], n_ii_50[2], n_ii_100[1],n_ii_100[2]),
+  'N(0,3)' = c(n_iii_20[1], n_iii_20[2], n_iii_50[1], n_iii_50[2], n_iii_100[1],n_iii_100[2]),
+  'L(0,1)' = c(l_i_20[1], l_i_20[2], l_i_50[1], l_i_50[2], l_i_100[1],l_i_100[2]),
+  'L(0,2)' = c(l_ii_20[1], l_ii_20[2], l_ii_50[1], l_ii_50[2], l_ii_100[1],l_ii_100[2]),
+  'L(0,3)' = c(l_iii_20[1], l_iii_20[2], l_iii_50[1], l_iii_50[2], l_iii_100[1],l_iii_100[2]),
+  'C(0,1)' = c(c_i_20[1], c_i_20[2], c_i_50[1], c_i_50[2], c_i_100[1],c_i_100[2]),
+  'C(0,2)' = c(c_ii_20[1], c_ii_20[2], c_ii_50[1], c_ii_50[2], c_ii_100[1],c_ii_100[2]),
+  'C(0,3)' = c(c_iii_20[1], c_iii_20[2], c_iii_50[1], c_iii_50[2], c_iii_100[1],c_iii_100[2])
+
+)
+colnames(df) <- c("n","  ", "N(0,1)", "N(0,2)", "N(0,3)", "L(0,1)", "L(0,2)", "L(0,3)", "C(0,1)", "C(0,2)", "C(0,3)")
+knitr::kable(df)
+```
+
+Jak spojrzymy na długości przedziałów dla zadanego n, to można zauważyć, że wszystkie długości są takie same. Oznacza to, że w przypadku estymacji asymptotycznej proporcji długość przedziału ufności jest stała, niezależnie od wybranego rozkładu. Wzrost n zmniejsza nam ten przedział, czyli zwiększa precyzję estymacji. Prawdopodobieństwo w każdym przypadku jest podobne i plasuje się w okolicach 0.95.
+
+
+
+
+

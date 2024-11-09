@@ -1,0 +1,723 @@
+---
+title: "Raport 2"
+author: "Magdalena Potok"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(gridExtra)
+library(extraDistr)
+set.seed(1)
+```
+
+## Zadanie 1
+Wygenerowałam 50 obserwacji z rozkładu dwumianowego $b(5,p)$, gdzie $p\in \{ 0.1,0.3,0.5,0.7,0.9 \}$.  
+Na podstawie wygenerowanych obserwacji wyznaczyłam wartość estymatora największej wiarogodności wielkości $P(X \ge 3)$, gdzie $X \sim b(5,p)$. Doświadczenie powtórzyłam 10 000 razy, oszacowałam wariancję, błąd średniokwadratowy oraz obciążenie analizowanego estymatora.  
+Aby policzyć wartość estmatora największej wiarogoności $P(X \ge 3)$ trzeba wiedzieć, że ENW dla rozkładu $b(5,p)$ jest $\hat{p} = \frac{\bar{x}}{5}$ - łatwo można się o tym przekonać licząc pierwszą i drugą pochodną funkcji prawdopodobieństwa tego rozkładu. Jak już znamy nasz estymator, zauważmy, że
+$$ \widehat{P(X \ge 3)} = 1 - (\widehat{P(X = 0)} + \widehat{P(X = 1)} + \widehat{P(X = 2)}) = 1 - \sum_{i = 0}^2 \binom{5}{i}\hat{p}^5(1- \hat{p})^{5-i} = 1 - \sum_{i = 0}^2 \binom{5}{i}(\frac{\bar{x}}{5})^5(1- \frac{\bar{x}}{5})^{5-i}$$
+
+
+```{r, echo = FALSE}
+zad1 <- function(n, p){
+  p_estym <- rep(0,10000)
+  prawd_estym <- rep(0,10000)
+  for(i in 1:10000){
+    x <- rbinom(n,5,p)
+    p_estym[i] <- mean(x)/5
+    prawd_estym[i] <- 1 - choose(5,2) * p_estym[i]^2 * (1-p_estym[i])^3-5 * p_estym[i] * (1 - p_estym[i])^4 - (1-p_estym[i])^5
+  }
+  prawd <- 1 - choose(5,2) * p^2 * (1-p)^3-5 * p * (1 - p)^4 - (1-p)^5
+  
+  mse <- (1/10000)*sum((prawd - prawd_estym)^2)
+  var <- (1/10000)*sum((mean(prawd_estym) - prawd_estym)^2)
+  bias <- (1/10000)*(sum(prawd_estym - prawd))
+  
+  return(round(c(var,mse,bias, prawd_estym[1], prawd),6))
+}
+p1 <- zad1(50,0.1)
+p2 <- zad1(50,0.3)
+p3 <- zad1(50,0.5)
+p4 <- zad1(50,0.7)
+p5 <- zad1(50,0.9)
+
+wyniki <- data.frame(
+    p = c(0.1, 0.3, 0.5, 0.7, 0.9),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4],p5[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5],p5[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2], p5[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1], p5[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3], p5[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+```
+Z tabeli możemy zaobserwować, że MSE i Var mają rozkład symetryczny, czyli im bardziej skrajny przypadek parametru p, tym wymienione wartości są niższe, czyli rozrzut ENW P(X>=3) od prawdziwej wartości jest najmniejszy. Obciążenie estymatora jest najmniejsze dla parametru p = 0.1.
+
+
+
+## Zadanie 2
+Wygenerowałam 50 obserwacji z rozkłądu Poissona z parametrem $\lambda$, gdzie $\lambda\in \{0.5,1,2,5\}$.  
+Na podstawie wylosowanych obserwacji wyznaczyłam wartość estymatora największej wiarogodności wielkości $P(X = x),\  x = 0,1,...,10$, gdzie $X ~ \pi(\lambda)$. Doświadczenie zostało powtórzone 10 000 razy i na tej podstawie oszacowałam wariancję, błąd średniokwadratowy oraz obciążenie analizowanego estymatora.  
+Aby policzyć estymator największej wiarogodności wielkości $P(X = x),\  x = 0,1,...,10$, przypomnijmy, że estymatorem największej wiarogodności jest $\hat{\lambda} = \hat{X}$ oraz funkcja prawdopodobieństwa tego rozkładu dyskretnego to: 
+$P(X = x) = \frac{\lambda^xe^{-\lambda}}{x!}$, zatem 
+$$\widehat{P(X = x_i)} = \frac{\hat{\lambda}^{x_i}e^{-\hat{\lambda}}}{x_i!} = \frac{\hat{X}^{x_i}e^{-\hat{X}}}{x_i!} $$
+
+
+* P(X = 1)
+
+```{r, echo = FALSE}
+zad2 <- function(n, l, y){
+  l_estym <- rep(0,10000)
+  prawd_estym <- rep(0,10000)
+  for(i in 1:10000){
+    x <- rpois(n,l)
+    l_estym[i] <- mean(x)
+    prawd_estym[i] <- sum((l_estym[i]^(y)*exp(-l_estym[i]))/factorial(y))
+  }
+  prawd <- sum((l^(y)*exp(-l))/factorial(y))
+  
+  mse <- (1/10000)*sum((prawd - prawd_estym)^2)
+  var <- (1/10000)*sum((mean(prawd_estym) - prawd_estym)^2)
+  bias <- (1/10000)*(sum(prawd_estym - prawd))
+  
+  return(round(c(var,mse,bias, prawd_estym[1], prawd),6))
+}
+p1 <- zad2(50,0.5,1)
+p2 <- zad2(50,1,1)
+p3 <- zad2(50,2,1)
+p4 <- zad2(50,5,1)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+Ponownie wyniki MSE i Var są rdo siebie zbliżone, warto zauważyć, że najmniejszą wartość Var otrzymujemy dla największej lambdy = 1. Oznacza to, że dla tej wielkości parametru w naszym rozkładzie, badany estymator jest bardziej stabilny i mniej podatny na sytuacje odstające, co jest ważną cechą estymatora. Dla tej lambdy jest również niskie MSE, co oznacza, że ten estymator jest dokładny. Najmniejsze obciążenie estymatora jest dla lambdy = 2.
+
+* P(X = 2)
+
+```{r, echo = FALSE}
+p1 <- zad2(50,0.5,2)
+p2 <- zad2(50,1,2)
+p3 <- zad2(50,2,2)
+p4 <- zad2(50,5,2)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+Tym razem najmniejsze MSE i Var badanego estymatora jest dla lambdy = 2. Najmniejsze obciążenie estymatora jest dla lambdy = 0.5.
+
+* P(X = 5)
+
+```{r, echo = FALSE}
+p1 <- zad2(50,0.5,5)
+p2 <- zad2(50,1,5)
+p3 <- zad2(50,2,5)
+p4 <- zad2(50,5,5)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+```
+
+Dla tego prawdopodobieństwa wyniki są zdecydowanie bardziej zbliżone, dla lambd = 0.5, 1 wariancja oraz błąd średniokwadratowy w przybliżeniu wynoszą 0, co świadczy o precyzyjności badanego estymatora. Dla lambdy = 0.5 obciążenie estymatora jest również bardzo niskie, bo wynosi jedynie 0.00005.
+
+* P(X = 7)
+
+```{r, echo = FALSE}
+p1 <- zad2(50,0.5,7)
+p2 <- zad2(50,1,7)
+p3 <- zad2(50,2,7)
+p4 <- zad2(50,5,7)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+Dla tego prawdopodobieństwa można zobaczyć już bardzo niskie wyniki MSE, Var oraz Bias dla każdej lambdy. Można pomyśleć, że dla większego x w funkcji prawdopodobieństwa P(X = x), tym nasz estymator jest bardziej dokładny, sprawdźmy jeszcze dla ostatniej wartości. 
+
+* P(X = 10)
+
+```{r, echo = FALSE}
+p1 <- zad2(50,0.5,10)
+p2 <- zad2(50,1,10)
+p3 <- zad2(50,2,10)
+p4 <- zad2(50,5,10)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+
+```
+
+
+Wyniki dla tego prawdopodobieństwa potwierdzają powyższe spekulacje o tym, że im większy x, tym estymator daje nam lepszy wynik. Wszystkie wyniki są bardzo bliskie 0. Można jeszcze powiedzieć, że mniejsza lambda daje nam lepszą estymację, ale te wyniki są na tyle bliskie 0, że dla lambdy = 5 również estymacja jest poprawna.  
+\newline
+W tym zadaniu ominęłam badanie wartości estymatora 
+$\widehat{P(X = x_i)}  \ x_i \in \{3,4,6,8\}$, ponieważ wyniki był bardzo zbliżone do wyżej przeanalizowanych sytuacji i dochodziłam do tych samych wniosków.
+
+## Zadanie 4
+Wygenerowałam 50 obserwacji z rozkładu beta z parametrami $\theta$ i 1, gdzie $\theta \in \{ 0.5,1,2,5\}$.  
+Doświadczenie powtórzyłam 10 000 razy, na podstawie tych danych wyznaczyłam wartość estymatora $\widehat{I(\theta)}$ informacji Fishera parametru $\theta$. Estymator największej wiarogodności $\hat{\theta}$ dla rozkładu beta z gęstością $\theta x^{\theta-1} \mathbb{1}_{(0,1)}(x), \theta > 0$ wynosi: $-\frac{n}{\sum_{i=1}^nlogx_i}$. Informację Fishera liczymy w następujący sposób: $I(\theta) = -\mathbb{E}\Big(\frac{\partial log f(X,\theta)}{\partial \theta}\Big)^2=-\mathbb{E}\Big(\frac{\partial^2logf(X,\theta)}{\partial \theta^2}\Big)$, po wyliczeniu drugiej pochodnej z funkcji logwiarogodności wychodzi, że $I(\theta) =-\mathbb{E}\Big( -\frac{1}{\theta^2}\Big)=\frac{1}{\theta^2}$. A więc estymator informacji Fishera, to:
+
+$$ \widehat{I(\theta)} = (\frac{\sum_{i=1}^nlogx_i}{n})^2$$
+```{r, echo = FALSE}
+zad4 <- function(n, t){
+  f_estym <- rep(0,10000)
+  for(i in 1:10000){
+    x <- rbeta(n,t,1)
+    f_estym[i] <- (sum(log(x))/n)^2
+    
+  }
+  f <- 1/(t^2)
+  
+  
+  mse <- (1/10000)*sum((f - f_estym)^2)
+  var <- (1/10000)*sum((mean(f_estym) - f_estym)^2)
+  bias <- (1/10000)*(sum(f_estym - f))
+  
+  return(round(c(var,mse,bias, f_estym[1], f),6))
+  
+}
+p1 <- zad4(50,0.5)
+p2 <- zad4(50, 1)
+p3 <- zad4(50, 2)
+p4 <- zad4(50,5)
+
+wyniki <- data.frame(
+    theta = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5])
+    #MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    #Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    #Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), " ")
+knitr::kable(wyniki)
+```
+
+Każdy z wyników estymacji $\widehat{I(\theta)}$ jest bardzo bliski prawdziwej wartości informacji Fishera.  
+
+
+Następnie wygenerowałam niezależnie 50 obserwacji z rozkładu beta z parametrami j.w. Wyznaczyłam wartość estymatora największej wiarogodności parametru $\theta$ i wyliczę dla nowej zmiennej zdefiniowanej jako $Y = \sqrt{n\widehat{I(\theta)}}(\hat{\theta}-\theta)$ jej wartość na podstawie zaobserwowanej próby oraz wcześniejszego wyniku. Doświadczenie powtórzyłam 10 000 razy i narysowałam histogram oraz wykres kwantylo-kwantylowy dla uzyskanych wyników. 
+
+
+* $\theta = 0.5$
+
+```{r, echo = FALSE, fig.height = 3}
+zad4_2 <- function(n, t){
+  Y <- rep(0,10000)
+  t_estym <- rep(0,10000)
+  I_estym <- zad4(50,t)[2]
+  for(i in 1:10000){
+    x <- rbeta(n,t,1)
+    t_estym <- -n/(sum(log(x)))
+    Y[i] <- sqrt(n*I_estym)*(t_estym - t)
+    
+  }
+  return(unlist(Y))
+  
+}
+Y1 <- zad4_2(50,0.5)
+
+
+wykres_zadanie_4 <- function(Y) {
+  hist_plot <- ggplot(data.frame(Y = Y), aes(x = Y)) +
+    geom_histogram(aes(y = after_stat(density)), binwidth = 0.15, fill = "steelblue3", color = "black") +
+    labs(x = "Y", y = "Licznosc", title = "Histogram Y") +
+    theme_minimal()
+  
+  x_seq <- seq(min(Y), max(Y), length.out = 1000)
+  y_density <- dnorm(x_seq, mean(Y), sd(Y))
+  
+  density_plot <- geom_line(data = data.frame(x = x_seq, y = y_density), aes(x, y), color = "red", linewidth = 1)
+  
+  qq_plot <- ggplot(data.frame(Y = Y), aes(sample = Y)) +
+    geom_qq() +
+    geom_abline(intercept = mean(Y), slope = sd(Y), col = "red", lwd = 1) +
+    labs(title = "Wykres kwantylowo-kwantylowy", x = "Teoretyczne kwantyle", y = "Obserwowane kwantyle") +
+    theme_minimal()
+  
+  grid.arrange(hist_plot + density_plot, qq_plot, ncol = 2)
+}
+
+wykres_zadanie_4(Y1)
+```
+Widzimy, że histogram przypomina przesunięty wykres funkcji gęstości rozkłądu normalnego. Na histogram została nałożona (czerwonym kolorem) teoretyczny wykres funkcji gęstości i widać, że znacznie większa część histogramu pokrywa się z tą krzywą. Możemy przypuszczać więc, że rozkład zachowuje się w przybliżeniu jak rozkład normalny.  
+Jeśli jednak spojrzymy na wykres kwantylo-kwantylowy zobaczymy, że rozkłąd empiryczny danych odstaje od rozkładu teoretycznego rozkładu normalnego. Wskazuje to na obecność obserwacji odstających, rozkłas więc nie jest dokładnie normalny, ale zachowuje się w podobny sposób.
+
+
+* $\theta \in \{1,2,5\}$
+
+Dla wyżej wymienionych $\theta$ wykresy nie odbiegają znacząco od wykresów, jak wyżej. Zatem wnioski są takie same jak powyższe.  
+\newline
+Rozkład zmiennej losowej $Y = \sqrt{n\widehat{I(\theta)}}(\hat{\theta}-\theta)$ jest bliski rozkładu normalnego.
+
+
+## Zadanie 5
+Wygenerowałam 50 obserwacji z rozkłądu Laplace'a z parametrem $\theta$ i skali $\sigma$, gdzie    
+(a) $\theta$ = 1, $\sigma$ = 1,  
+(b) $\theta$ = 4, $\sigma$ = 1,  
+(c) $\theta$ = 1, $\sigma$ = 2.  
+Na podstawie tych rozkładów obliczyłam wartość estymatora $\theta$ postaci:  
+(i) $\hat{\theta_1}$ = $\bar{X}$,  
+(ii) $\hat{\theta_2}$ = $Me \{X_1,...,X_n\}$,  
+(iii) $\hat{\theta_3}$ = $\sum_{i=1}^{n} w_iX_i, \sum_{i=1}^{n}w_i = 1, 0 \le w_i \le 1$, gdzie $w_i$ to ciąg liczb zaczynających się od 0.02 i zwiększających się o 0.02. W ten sposób cały wektor sumuje się do 1 i każda waga jest z przedziału $(0,1)$,  
+(iv) $\hat{\theta_4}$ = $\sum_{i=1}^{n} w_iX_{i:n}$, gdzie $X_{i:n}$ to uporządkowane obserwacje $X_i$ oraz $w_i = \varphi(\Phi^{-1}(\frac{i-1}n)) - \varphi(\Phi^{-1}(\frac{i}n))$,  
+$\varphi$ i $\Phi$ to kolejno gęstość oraz dystrybuanta standardowego rozkładu normalnego.  
+Doświadczenie powtórzyłam 10 000 razy i na tej podstawie oszacowałam wariancję, błąd średniokwadratowy oraz obciążenie każdego z estymatorów.  
+
+
+```{r, echo = FALSE}
+wylicz_estym<- function(n, tet, s){
+  
+  w_tet1 <- rep(NA, 10000)
+  w_tet2 <- rep(NA, 10000)
+  w_tet3 <- rep(NA, 10000)
+  w_tet4 <- rep(NA, 10000)
+  j <- 1:n
+  
+  for (i in 1:10000){
+    obs <- rlaplace(n, tet, s)
+    w_tet1[i] <- mean(obs)
+    w_tet2[i] <- median(obs)
+    wagi_1 <- seq(1/n, 1, 1/n)
+    w_tet3[i] <- sum(obs*wagi_1/sum(wagi_1))
+    wagi_2 <- dnorm(qnorm((j-1)/n)) - dnorm(qnorm(j/n))
+    w_tet4[i] <- sum(wagi_2*sort(obs))
+  }
+  MSE_tet1 = 1/10000*sum((tet-w_tet1)^2)
+  MSE_tet2 = 1/10000*sum((tet-w_tet2)^2)
+  MSE_tet3 = 1/10000*sum((tet-w_tet3)^2)
+  MSE_tet4 = 1/10000*sum((tet-w_tet4)^2)
+  
+  Var_tet1 = 1/10000*sum((mean(w_tet1)-w_tet1)^2)
+  Var_tet2 = 1/10000*sum((mean(w_tet2)-w_tet2)^2)
+  Var_tet3 = 1/10000*sum((mean(w_tet3)-w_tet3)^2)
+  Var_tet4 = 1/10000*sum((mean(w_tet4)-w_tet4)^2)
+  
+  Bias_tet1 = 1/10000*sum(w_tet1-tet)
+  Bias_tet2 = 1/10000*sum(w_tet2-tet)
+  Bias_tet3 = 1/10000*sum(w_tet3-tet)
+  Bias_tet4 = 1/10000*sum(w_tet4-tet)
+  
+  wyniki <- data.frame(
+    Teta = c("Teta1", "Teta2", "Teta3", "Teta4"),
+    MSE = round(c(MSE_tet1, MSE_tet2, MSE_tet3, MSE_tet4),5),
+    Var = round(c(Var_tet1, Var_tet2, Var_tet3, Var_tet4),5),
+    Bias = round(c(Bias_tet1, Bias_tet2, Bias_tet3, Bias_tet4),5)
+  )
+  colnames(wyniki) <- paste(colnames(wyniki), "          ")
+  return(wyniki)
+}
+```
+
+* (a) $\theta$ = 1, $\sigma$ = 1
+
+```{r wyniki, echo=FALSE, results='asis'}
+wyniki_estymacji <- wylicz_estym(50, 1, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+
+
+
+```
+Najmniejsze obciążenie estymatora jest dla $\hat{\theta}_3$, nastomiast najniższy MSE i Var jest dla $\hat{\theta}_2$, dla tego estymatora Bias nie jest też zbyt wysokie, więc dla tych parametrów rozkładu Laplace'a $\hat{\theta}_2$ byłby najlepszy wyborem estymatora.
+
+
+* (b) $\theta$ = 4, $\sigma$ = 1
+
+```{r, echo = FALSE}
+ 
+wyniki_estymacji <- wylicz_estym(50, 4, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+
+
+```
+
+Można zauważyć, że wzrost parametru $\theta$ w naszym rozkłądzie spowodował wzrost MSE i Var dla $\hat{\theta}_1 , \hat{\theta}_3 \ i\ \hat{\theta}_4$, a $\hat{\theta}_2$ minimalnie zmalało, a więc ten estymator nadal wydaje się najlepszym wyborem.
+
+
+* (c) $\theta$ = 1, $\sigma$ = 2
+
+```{r, echo = FALSE}
+ 
+wyniki_estymacji <- wylicz_estym(50, 1, 2)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+
+Ponownie najniższe wyniki (co do modułu) wychodzą dla estymatora $\hat{\theta}_2$, a więc próbkowa mediana okazała się najlepszym estymatorem dla każdego z przypadków, wzzrost $\theta$ oraz $\sigma$ nie wpływa na wybór estymatora.
+
+## Zadanie 6
+W tym zadaniu powótrzyłam eksperymenty z zadań 1, 2, 4, 5 dla n = 20 i n = 100.
+
+### Zadanie 1' 
+
+Estymator $P(X \ge 3)$, gdzie $X \sim b(5,p)$, $p\in \{ 0.1,0.3,0.5,0.7,0.9 \}$
+
+* n = 20
+```{r, echo = FALSE}
+
+p1 <- zad1(20,0.1)
+p2 <- zad1(20,0.3)
+p3 <- zad1(20,0.5)
+p4 <- zad1(20,0.7)
+p5 <- zad1(20,0.9)
+
+wyniki <- data.frame(
+    p = c(0.1, 0.3, 0.5, 0.7, 0.9),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4],p5[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5],p5[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2], p5[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1], p5[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3], p5[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+Ponownie można zaobserwować symetryczne rozłożenie MSE i Var. Zmniejszenie próby wywołało wzrost wszystkich wartości, co mówi nam, że estymator jest mniej dokładny, podatniejszy na sytuacje odstające i bardziej obciążony dla każdego p.
+
+* n = 100
+
+```{r, echo = FALSE}
+p1 <- zad1(100,0.1)
+p2 <- zad1(100,0.3)
+p3 <- zad1(100,0.5)
+p4 <- zad1(100,0.7)
+p5 <- zad1(100,0.9)
+
+wyniki <- data.frame(
+    p = c(0.1, 0.3, 0.5, 0.7, 0.9),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4],p5[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5],p5[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2], p5[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1], p5[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3], p5[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+Wszystkie wartości MSE, Var i Bias zmalały przy zwiększeniu próby. Oznacza to, że zwiększenie próby wpłynęło na dokładność naszego estymatora, czego moglibyśmy się oczywiście spodziewać. Najlepszy wynik (tj. najniższy błąd średniokwadratowy, wariancja oraz niskie obciążenie) wyszło dla p = 0.9.
+
+### Zadanie 2' 
+
+Estymator $P(X = x),\  x = 0,1,...,10$, gdzie $X ~ \pi(\lambda)$, $\lambda\in \{0.5,1,2,5\}$
+
+* n = 20
+
+- P(X = 1)
+
+```{r, echo = FALSE}
+p1 <- zad2(20,0.5,1)
+p2 <- zad2(20,1,1)
+p3 <- zad2(20,2,1)
+p4 <- zad2(20,5,1)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+- P(X = 5)
+
+```{r, echo = FALSE}
+p1 <- zad2(20,0.5,5)
+p2 <- zad2(20,1,5)
+p3 <- zad2(20,2,5)
+p4 <- zad2(20,5,5)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+- P(X = 7)
+
+```{r, echo = FALSE}
+p1 <- zad2(20,0.5,7)
+p2 <- zad2(20,1,7)
+p3 <- zad2(20,2,7)
+p4 <- zad2(20,5,7)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+Wszystkie wyniki badające dokłądność estymatora dla każdego z funkcji prawdopodobieństwa wyszły o drobinę gorsze (tj. większe) niż dla próby n = 50. Jednak nadal są to bardzo niskie wyniki i już dla próby n = 20 można uznać ten estymator za odpowiedni. Wnioski, że im większe $x_i$ dla funkcji $P(X = x_i)$ , tym wynik estymatora będzie bardziej satysfakcjonujący.
+
+* n = 100
+
+- P(X = 1)
+
+```{r, echo = FALSE}
+p1 <- zad2(100,0.5,1)
+p2 <- zad2(100,1,1)
+p3 <- zad2(100,2,1)
+p4 <- zad2(100,5,1)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+
+```
+
+- P(X = 5)
+
+```{r, echo = FALSE}
+p1 <- zad2(100,0.5,5)
+p2 <- zad2(100,1,5)
+p3 <- zad2(100,2,5)
+p4 <- zad2(100,5,5)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+
+```
+
+- P(X = 7)
+
+```{r, echo = FALSE}
+p1 <- zad2(100,0.5,7)
+p2 <- zad2(100,1,7)
+p3 <- zad2(100,2,7)
+p4 <- zad2(100,5,7)
+
+
+wyniki <- data.frame(
+    lambda = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5]),
+    MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), "          ")
+knitr::kable(wyniki)
+```
+Ponownie dla większej próbki estymator jest lepszy, ma każdy wynik, dla każdej lambdy niższy niż w przypadku gry n = 50 lub n = 20. Dużo szybciej również wyniki zbiegają do 0, tzn. już dla P(X = 5) możemy zauważyć zerowe MSE i Var (z dokładnością do 4 miejsc po przecinku) dla każdej z lambd, czego nie mogliśmy zauważyć we wcześniejszych przypadkach.
+
+### Zadanie 4'
+
+Estymator $\widehat{I(\theta)}$, gdzie $X \sim b(\theta,1),\ \theta \in \{ 0.5,1,2,5\}$
+
+* n = 20
+
+```{r, echo = FALSE}
+p1 <- zad4(20,0.5)
+p2 <- zad4(20, 1)
+p3 <- zad4(20, 2)
+p4 <- zad4(20,5)
+
+wyniki <- data.frame(
+    theta = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5])
+    #MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    #Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    #Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), " ")
+knitr::kable(wyniki)
+
+```
+Dla takiej wielkości próby nasz estymator informacji Fishera znacznie bardziej odbiega od rzeczywistej wartości, estymator jest mniej dokładny niż dla n = 50.
+
+Wykres $Y = \sqrt{n\widehat{I(\theta)}}(\hat{\theta}-\theta)$
+
+- $\theta$ = 0.5
+
+```{r, echo = FALSE, fig.height = 3}
+Y1 <- zad4_2(20,0.5)
+wykres_zadanie_4(Y1)
+```
+
+Histogram dalej w większej części znajduje się pod teoretycznie wyznaczoną krzywa gęstości, ale wystaje większa jego część niż w przypadku, gdy n = 50. Na wykresie kwantylo-kwantylowym można zaobserwować tkzw. ciężkie ogony, które odstają od teoretycznej prostej.
+
+
+- $\theta \in \{ 0.5,1,2,5\}$
+
+Ponownie jak w przypadku n = 50. Wykresy nie różnią się znacząco od siebie.
+
+* n = 100
+
+```{r, echo = FALSE}
+p1 <- zad4(100,0.5)
+p2 <- zad4(100, 1)
+p3 <- zad4(100, 2)
+p4 <- zad4(100,5)
+
+wyniki <- data.frame(
+    theta = c(0.5, 1, 2, 5),
+    Wynik_estymowany = c(p1[4],p2[4],p3[4],p4[4]),
+    Wynik_prawdziwy = c(p1[5],p2[5],p3[5],p4[5])
+    #MSE = round(c(p1[2], p2[2], p3[2], p4[2]),5),
+    #Var = round(c(p1[1], p2[1], p3[1], p4[1]),5),
+    #Bias = round(c(p1[3], p2[3], p3[3], p4[3]),5)
+  )
+colnames(wyniki) <- paste(colnames(wyniki), " ")
+knitr::kable(wyniki)
+
+```
+
+Wyniki estymaowane są lepsze niż dla n = 20, ale są gorsze niż dla n = 50, jest to spowodowane losowością wybranej próby, spodziewalibyśmy się, żeby wyniki były lepsze dla większego n.
+
+Wykres $Y = \sqrt{n\widehat{I(\theta)}}(\hat{\theta}-\theta)$
+
+- $\theta$ = 0.5
+
+```{r, echo = FALSE, fig.height = 3}
+Y1 <- zad4_2(100,0.5)
+wykres_zadanie_4(Y1)
+```
+
+Tym razem histogram prawie pokrywa się z krzywą gęstości, co wskazywałoby na zachowanie podobne dla rozkłady normalnego. Wykres kwanylo-kwantylowy również coraz bardziej zbliża się do wyznaczonej teoretycznej prostej. Wynik nie powinien nas dziwić, zgodnie z Centralnym Twierdzeniem Granicznym.
+
+- $\theta \in \{ 0.5,1,2,5\}$
+
+Podobnie jak dla pozostałych n, wykresy dla podanych wartości parametru $\theta$ nie odbiega znacząco od powyższego.
+
+### Zadanie 5'
+
+Estymatory $\hat{\theta_1}$, $\hat{\theta_2}$, $\hat{\theta_3}$ oraz $\hat{\theta_4}$ (zdefiniowane w zadaniu 5.), gdzie $X \sim L(\theta,\sigma)$
+
+* n = 20
+
+(a) $\theta$ = 1, $\sigma$ = 1
+
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(20, 1, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+
+```
+
+Każdy z wyników dla każdego estymatora $\hat{\theta}_i$ jest większy niż dla n = 50. Najlepsze estymatorem, który ma najmniejszy błąd średniokwadratowy, najmniejszą wariancję i prawie najniższe obciążenie jest $\hat{\theta}_2$ dla naszej próby n = 20.
+
+(b) i (c)
+
+Dla tych podpunktów również wyniki był gorsze niż dla większej próby. Najlepszy estymatorem również okazał się $\hat{\theta}_2$.
+
+* n = 100
+
+(a) $\theta$ = 1, $\sigma$ = 1
+
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(100, 4, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+
+```
+Można zaobserować, że MSE i Var są niższe dla każdego $\hat{\theta}_i$ , jednak Bias prawie w każdym z przypadków jest wyższe, co oznaczałoby, że estymator jest bardziej obciążony dla większej próby. Ponownie najlepszym wyborem estymatora jest $\hat{\theta}_2$.
+
+(b) i (c)
+
+Takie same wnioski jak powyżej dla obu podpunktów. Estymator $\hat{\theta}_2$ jest najlepszym wyborem estymatora dla tego rozkładu niezależnie od wyboru wielkości próbki.
+
+
+
+
+

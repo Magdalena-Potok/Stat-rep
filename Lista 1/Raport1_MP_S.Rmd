@@ -1,0 +1,426 @@
+---
+title: "Raport 1"
+author: "Magdalena Potok"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+## Zadanie 1
+W tym zadaniu wygenerowałam 50 obserwacji z rozkładu $N(\theta,\sigma^2)$, gdzie    
+(a) $\theta$ = 1, $\sigma$ = 1,  
+(b) $\theta$ = 4, $\sigma$ = 1,  
+(c) $\theta$ = 1, $\sigma$ = 2.  
+Dla każdego z rozkładów policzyłam cztery różne estymatory parametru $\theta$.  
+(i) $\hat{\theta_1}$ = $\bar{X}$,  
+(ii) $\hat{\theta_2}$ = $Me \{X_1,...,X_n\}$,  
+(iii) $\hat{\theta_3}$ = $\sum_{i=1}^{n} w_iX_i, \sum_{i=1}^{n}w_i = 1, 0 \le w_i \le 1$, gdzie $w_i$ to ciąg liczb zaczynających się od 0.02 i zwiększających się o 0.02. W ten sposób cały wektor sumuje się do 1 i każda waga jest z przedziału $(0,1)$,  
+(iv) $\hat{\theta_4}$ = $\sum_{i=1}^{n} w_iX_{i:n}$, gdzie $X_{i:n}$ to uporządkowane obserwacje $X_i$ oraz $w_i = \varphi(\Phi^{-1}(\frac{i-1}n)) - \varphi(\Phi^{-1}(\frac{i}n))$,  
+$\varphi$ i $\Phi$ to kolejno gęstość oraz dystrybuanta rozkładu normalnego.  
+To doświadczenie zostało powtórzone R = 10 000 razy i na tej podstawie została oszacowana:  
+- **wariancja**: $Var_j = \frac{1}R \sum_{i = 1}^R (\bar{\hat{\theta_j}} - \hat{\theta_i})^2$,  
+- **błąd średniokwadratowy**: $MSE_j = \frac{1}R \sum_{i=1}^R (\theta - \hat{\theta_i})^2$,  
+- **obciążenie estymatorów**: $Bias = \frac{1}R \sum_{i=1}^R \hat{\theta_i} -\theta$.  
+Wyniki dla każdego z podpunktów (a)-(c) zostaną przedstawione w postaci tabeli.  
+
+* (a) $\theta$ = 1, $\sigma$ = 1  
+```{r pressure, echo=FALSE}
+wylicz_estym<- function(n, tet, s){
+  
+  w_tet1 <- rep(NA, 10000)
+  w_tet2 <- rep(NA, 10000)
+  w_tet3 <- rep(NA, 10000)
+  w_tet4 <- rep(NA, 10000)
+  j <- 1:n
+  
+  for (i in 1:10000){
+    obs <- rnorm(n, tet, s)
+    w_tet1[i] <- mean(obs)
+    w_tet2[i] <- median(obs)
+    wagi_1 <- seq(1/n, 1, 1/n)
+    w_tet3[i] <- sum(obs*wagi_1/sum(wagi_1))
+    wagi_2 <- dnorm(qnorm((j-1)/n)) - dnorm(qnorm(j/n))
+    w_tet4[i] <- sum(wagi_2*sort(obs))
+  }
+  MSE_tet1 = 1/10000*sum((tet-w_tet1)^2)
+  MSE_tet2 = 1/10000*sum((tet-w_tet2)^2)
+  MSE_tet3 = 1/10000*sum((tet-w_tet3)^2)
+  MSE_tet4 = 1/10000*sum((tet-w_tet4)^2)
+  
+  Var_tet1 = 1/10000*sum((mean(w_tet1)-w_tet1)^2)
+  Var_tet2 = 1/10000*sum((mean(w_tet2)-w_tet2)^2)
+  Var_tet3 = 1/10000*sum((mean(w_tet3)-w_tet3)^2)
+  Var_tet4 = 1/10000*sum((mean(w_tet4)-w_tet4)^2)
+  
+  Bias_tet1 = 1/10000*sum(w_tet1-tet)
+  Bias_tet2 = 1/10000*sum(w_tet2-tet)
+  Bias_tet3 = 1/10000*sum(w_tet3-tet)
+  Bias_tet4 = 1/10000*sum(w_tet4-tet)
+  
+  wyniki <- data.frame(
+    Teta = c("Teta1", "Teta2", "Teta3", "Teta4"),
+    MSE = round(c(MSE_tet1, MSE_tet2, MSE_tet3, MSE_tet4),5),
+    Var = round(c(Var_tet1, Var_tet2, Var_tet3, Var_tet4),5),
+    Bias = round(c(Bias_tet1, Bias_tet2, Bias_tet3, Bias_tet4),5)
+  )
+  colnames(wyniki) <- paste(colnames(wyniki), "          ")
+  return(wyniki)
+}
+```
+
+```{r wyniki, echo=FALSE, results='asis'}
+wyniki_estymacji <- wylicz_estym(50, 1, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+
+Można zawuażyć, że najniższym wynikiem w tabeli jest $Var \ \hat{\theta_4}$, ale ten parametr ma również największe (co do modułu) obciążenie estymatora. Wynik jest ujemny, co oznacza, że średnia estymacja jest wyższa od prawdziwej wartości parametru. Patrząc na pozostałę estymatory najlepszym wyborem jest $\hat{\theta_1}$, ponieważ ma najniższy błąd średniokwadratowy i wariancję, co wskazuje na dobrą jakość estymacji.  
+
+* (b) $\theta$ = 4, $\sigma$ = 1
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(50, 4, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+Najbardziej rzucającym się w oczy wynikiem dla tych parametrów jest wartość błędu średniokwadratowego dla $\hat{\theta_4}$, co sugeruje, że ten estymator jest nieprecyzyjny i ma tendencje do dużego rozrzutu wokół prawdziwej wartości $\theta$. Niska wariancja mówi nam, że wyniki są skoncentrowane wokół swojej średniej wartości, ale ta średnia wartość jest oddalona od prawdziwej wartości parametru.    
+Najniższe wyniki ponownie należą do $\hat{\theta_1}$ i to właśnie on najlepiej estymuje parametr $\theta$ dla tego rozkładu.
+
+* (c) $\theta$ = 1, $\sigma$ = 2
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(50, 1, 2)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+Wartości wszystkich parametrów, dla każdejgo $\hat{\theta_i}$ co do modułu wzrosły. Jest to spowodowane większą $\sigma$ tego rozkładu porównując do poprzednich tabelek. Większy rozrzut obserwacji dla rozkładu $N(\theta,\sigma^2)$ oznacza spadek dokładności podanych estymatorów $\theta$.  
+
+## Zadanie 2
+
+W języku R komenda
+```{r}
+set.seed(1)
+```
+służy do inicjalizacji generatora liczb pseudolosowych. Oznacza to, że ziarno generatora ustawione jest na konkretną wartość (w tym przypadku 1), co sprawia, że będziemy otrzymywać te same ciągi liczb losowych. Ta funkcja ma wiele zastosowań, przede wszystkim pozwala nam powtarzać wyniki symulacji, odtwarzać je na innych komputerach lub kontynuować obliczenia w wyniku wystąpienia jakiegoś błędu.
+
+## Zadanie 3
+
+Estymatory największej wiarogodności (MLE)
+są używane do oszacowania parametrów statystycznych. W niektórych przypadkach obliczenie go analitycznie może być trudne lub niemożliwe, w takim przypadku pomagają metody numeryczne. Dobrym tego przykładem jest rozkład logistyczny z gęstością 
+$f(x;\theta)= \frac{e^{\frac{-(x-\theta)}{\sigma}}}{(1+e^{\frac{-(x-\theta)}{\sigma}})^2},  -\infty < x, \theta < \infty$.  
+Chcemy znaleźć MLE tego rozkładu, liczymy funkcję logwiarogodności, która jest sumą logarytmów z gęstości prawdopodobieństwa dla wszystkich próbek  
+$$l(\theta)=\sum_{i = 1}^n logf(x_i,\theta) = \frac{n\theta}{\sigma} - \frac{n\bar{x}}{\sigma} - 2\sum_{i = 1}^n log(1+e^{\frac{-(x_i-\theta)}{\sigma}}).$$.  
+Następnie szukając największej wartości liczymy pochodną  
+$$l'(\theta) = \frac{n}{\sigma} - \frac{2}{\sigma}\sum_{i=1}^n\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{1+e^{\frac{-(x_i-\theta)}{\sigma}}},$$
+przyrównując to do 0 wychodzi  
+$$\sum_{i=1}^n\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{1+e^{\frac{-(x_i-\theta)}{\sigma}}} = \frac{n}2.$$ 
+Jednak rozwiązanie tego i znalezienie takiego $\theta$ jest czasochłonne i bardzo trudne, wtedy szukamy innych metod wyznaczających estymatory największej wiarogodności, najczęściej są to metody numeryczne. Jednak najpierw przekonajmy się, że rozwiązanie dla tego rozkładu posiada rozwiązanie jednoznaczne.  
+$$\frac{\partial}{\partial\theta}( \frac{n}{\sigma} - \frac{2}{\sigma}\sum_{i=1}^n\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{1+e^{\frac{-(x_i-\theta)}{\sigma}}}) = \frac{-2}{\sigma^2}\sum_{i=1}^n -\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{(1+e^{\frac{-(x_i-\theta)}{\sigma}})^2} < 0.$$  
+Druga pochodna jest ujemna, zatem rozwiązanie jest jednoznaczne. Do wyznaczenia estymatora dla tego rozkładu użyję Metody Newtona w następnych zadaniach.
+
+## Zadanie 4
+
+Jedną z metod numerycznych wyznaczania estymatora największej wiarogodności jest Metoda Newtona. Jest to algorytm iteracyjny służący do znalezienia przybliżonego miejsca zerowego funkcji. Działa na zasadzie iteracyjnego poprawiania przybliżonego rozwiązania do momentu, aż wartość będzie nas zadowalać.  
+W kontekście rozkładu logistycznego chcemy znaleźć gdzie zeruje się pierwsza pochodna funkcji logwiarogodności $l'(\theta) = \frac{n}{\sigma} - \frac{2}{\sigma}\sum_{i=1}^n\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{1+e^{\frac{-(x_i-\theta)}{\sigma}}}$ i potrzebna nam jest jeszcze druga pochodna, czyli $\frac{-2}{\sigma^2}\sum_{i=1}^n -\frac{e^{\frac{-(x_i-\theta)}{\sigma}}}{(1+e^{\frac{-(x_i-\theta)}{\sigma}})^2}$. Następnie musimy wybrać początek naszego zgadywania - $\theta_0$, co często jest problematyczne dla tej metody. Następnie szukamy $\theta_1 = \theta_0 - \frac{l'(\theta_0)}{l''(\theta_0)}$, który jest lepszym przybliżeniem $\theta$ niż $\theta_0$. Ten proces cały czas jest powtarzany, tzn. $\theta_n = \theta_{n-1} - \frac{l'(\theta_{n-1})}{l''(\theta_{n-1})}$, aż do momentu gdy uzyskany wynik nas zadowala i różnica między kolejnymi przybliżeniami jest wystarczająco mała, tj. $|\theta_n - \theta_{n-1}| < \epsilon$, gdzie $\epsilon$ to liczba bliska 0, która określa nam poziom tolerancji błędu. Gdy różnica między kolejnymi przybliżeniami stanie się dostatecznie mała lub gdy wartość $l'(\theta_n)$ jest już blisko zera, to 
+$\theta_n$ jest naszym estymatorem wiarogoności dla parametru $\theta$.  
+Warto zaznaczyć, że ta metoda wymaga ostrożności oraz odpowiedniej inicjalizacji (pierwszy strzał $\theta_0$), ponieważ może doporwadzić do błędu w przypadku nieodpowiedniego początkowego przybliżenia.
+
+## Zadanie 5
+W tym zadaniu zostały wygenerowanych 50 obserwacji z trzech rozkładów logistycznych $L(\theta,\sigma)$ z parametrem przesunięcia $\theta$ oraz skali $\sigma$, gdzie:    
+(a) $\theta = 1, \sigma = 1$,  
+(b) $\theta = 4, \sigma = 1$,  
+(c) $\theta = 1, \sigma = 2$.  
+Następnie wartość estymatora największej wiarogodności parametru $\theta$ został oszacowany przy pomocy Matody Newtona opisanej w poprzednich zadaniach. Jako wybór punktu początkowego wybrałam średnią próbkową rozkładów, ponieważ jest to dobry estymator tego parametru dla tego rozkładu.  
+
+```{r, echo = FALSE}
+l_prim <- function(x, teta, sigma){
+  return(length(x)/sigma - (2/sigma)*sum(exp(-(x-teta)/sigma)/(1+exp(-(x-teta)/sigma))))
+}
+
+l_bis <- function(x, teta, sigma){
+  return(-2/(sigma^2)*sum(exp(-(x-teta)/sigma)/(1 + exp(-(x-teta)/sigma))^2))
+}
+
+funkcja <- function(n, teta, sigma, epsilon){
+  X <- rlogis(n, teta, sigma)
+  estymator_teta <- mean(X)
+  l_krokow <- 0
+  while(abs(l_prim(X, estymator_teta, sigma)) > epsilon){
+    a <- l_prim(X, estymator_teta, sigma)
+    b <- l_bis(X, estymator_teta, sigma)
+    estymator_teta <- estymator_teta - a/b
+    l_krokow <- l_krokow + 1
+  }
+  return(c(estymator_teta, l_krokow))
+}
+a <- funkcja(50, 1, 1, 0.00001)
+b <- funkcja(50, 4, 1, 0.00001)
+c <- funkcja(50, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Przyblizenie = c(a[1],b[1],c[1]), Kroki = c(a[2],b[2],c[2]))
+knitr::kable(df)
+
+```
+Liczba kroków w algorytmie nie jest duża, mimo że tolerancję błędu wybrałam naprawdę małą, bo $\epsilon = 0.00001$. Jest to spowodowane dobrym wyborem $\theta_0$ jako średnią całego rozkładu (mean(rlogis(50,$\theta$,$\sigma$))).    
+
+Powyższe doświadczenie zostało powtórzone 10 000 razy, na tej podstawie oszacowałam wariancję, błąd średniokwadratowy oraz obciążenie estymatora.  
+\newline
+\newline
+
+```{r, echo = FALSE}
+
+metoda_newtona <- function(p, n, t, s) {
+  
+  x_sample <- matrix(NA, ncol = n, nrow = p)
+  estymator_t <- matrix(NA, ncol = p)
+
+  for (i in 1:p) {
+    x_sample[i, ] <- rlogis(n, t, s)
+    estymator_t[i] <- mean(x_sample[i, ])
+  }
+
+
+  krok <- matrix(0, ncol = p)
+  for (i in 1:p) {
+    while (abs(l_prim(x_sample[i, ], estymator_t[i], s)) > 0.00001 && krok[i] < 1000) {
+      a <- l_prim(x_sample[i, ], estymator_t[i], s)
+      b <- l_bis(x_sample[i, ], estymator_t[i], s)
+      estymator_t[i] <- estymator_t[i] - a / b
+      krok[i] <- krok[i] + 1
+    }
+  }
+
+
+  theta <- t
+  theta_mean <- mean(estymator_t)
+  mse <- 1/p * sum((theta - estymator_t)^2)
+  var <- 1/p * sum((theta_mean - estymator_t)^2)
+  bias <- 1/p * sum(estymator_t - theta)
+
+
+  wynik <- c(var,mse,bias)
+
+  return(wynik)
+}
+a1 <- metoda_newtona(10000,50,1,1) 
+b1 <- metoda_newtona(10000,50,4,1) 
+c1 <- metoda_newtona(10000,50,1,2) 
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Var = round(c(a1[1],b1[1],c1[1]),5), MSE = round(c(a1[2],b1[2],c1[2]),5), Bias = round(c(a1[3],b1[3],c1[3]),5))
+knitr::kable(df)
+```
+Z tabelki można zauważyć, że wartość ENW dla każdego z rozkładu jest bliska prawdziwej wartości, co świadczy o poprawności wybranej metody numerycznej. Najgorszy wynik wychodzi dla rozkładu L(1,2), jest to spowodowane tym, że w tym rozkładzie jest największa wartość wariancji, co sprawia, że wyniki są bardziej rozproszone i utrudnia to estymację.
+
+## Zadanie 6
+Wygenerowałam 50 obserwacji z rozkładów Cauchy'ego $C(\theta,\sigma)$ z parametrami przesunięcia $\theta$ i skali $\sigma$, gdzie:  
+(a) $\theta = 1, \sigma = 1$,  
+(b) $\theta = 4, \sigma = 1$,    
+(c) $\theta = 1, \sigma = 2$.  
+Następnie oszacowałam wartość estymatora największej wiarogodności parametru $\theta$ na podstawie wygenerowanych prób. Do uzyskania ENW zastosowałam ponownie Metodę Newtona i jako punkt początkowy wybrałam średnią próbkową rozkładu.  
+Do wykorzystania Metody Newtona potrzebna nam jest gętość rozkładu Cauchy'ego: $$f(x,\theta) = \frac{1}{\pi\sigma(1+(\frac{x-\theta}{\sigma})^2)}$$ Następnie liczymy funkcję logwiarogodności: $l(\theta) = -n\log(\pi\sigma) - \sum_{i=1}^n \log\left(1 + \left(\frac{x_i - \theta}{\sigma}\right)^2\right)$ oraz liczymy pierwszą pochodną $l'(\theta) = \frac{2}{\sigma^2} \sum_{i=1}^n \frac{x_i - \theta}{1 + \left(\frac{x_i - \theta}{\sigma}\right)^2}$ i drugą pochodną 
+$\frac{d^2\ell(\theta)}{d\theta^2} = \frac{-2}{\sigma^2} \sum_{i=1}^n \frac{1 - \left(\frac{x_i - \theta}{\sigma}\right)^2}{\left(1 + \left(\frac{x_i - \theta}{\sigma}\right)^2\right)^2}$.
+```{r echo=FALSE}
+l_prim_C <- function(x, teta, sigma){
+  return(2*sum((x-teta)/(sigma^2+(x-teta)^2)))
+}
+l_bis_C <- function(x, teta, sigma){
+  return(2*sum(((x-teta)^2-sigma^2)/(sigma^2+(x-teta)^2)^2))
+}
+
+funkcja_C <- function(n, teta, sigma, epsilon){
+  X <- rcauchy(n, teta, sigma)
+  estymator_teta <- median(X)
+  l_krokow <- 0
+  while((abs(l_prim_C(X, estymator_teta, sigma)) > epsilon) && l_krokow <= 5){
+    a <- l_prim_C(X, estymator_teta, sigma)
+    b <- l_bis_C(X, estymator_teta, sigma)
+    estymator_teta <- estymator_teta - (a/b)
+    l_krokow <- l_krokow + 1
+  }
+  return(c(estymator_teta, l_krokow))
+}
+aC <- funkcja_C(50, 1, 1, 0.00001)
+bC <- funkcja_C(50, 4, 1, 0.00001)
+cC <- funkcja_C(50, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Przyblizenie = c(aC[1],bC[1],cC[1]), Kroki = c(aC[2],bC[2],cC[2]))
+knitr::kable(df)
+```
+Dla pojedynczego doświadczenia otrzymujemy wyniki bliskie prawdziwej wartości $\theta$ przy małej ilości kroków, bo tylko dla 2. Mała ilość kroków ponownie spowodowana jest dobrym doborem $\theta_0$, czyli średniej całego rozkładu.  
+\newline
+Następnie powyższe doświadczenie powtórzyłam 10 000 razy i oszacowałam wariancję, błąd średniokwadratowy oraz obciążenie estymatora, wyniki przedstawiłam w poniższej tabelce.
+```{r, echo = FALSE}
+metoda_newtona_1 <- function(p,n,t,s){
+  x_sample <- matrix(NA,ncol=n,nrow=p)
+  estymator_t <- matrix(NA,ncol=p)
+  for (i in 1:p) {
+    x_sample[i,] <- rcauchy(n,t,s)
+    estymator_t[i] <- median(x_sample[i,])
+  }
+  krok <- matrix(0,ncol=p)
+  for (i in 1:p) {
+    while(abs(l_prim_C(x_sample[i,],estymator_t[i],s)) > 0.00001 && krok[i] < 1000){
+      a <- l_prim_C(x_sample[i,],estymator_t[i],s)
+      b <- l_bis_C(x_sample[i,],estymator_t[i],s)
+      estymator_t[i] <- estymator_t[i] - a/b
+      krok[i] <- krok[i] + 1
+    
+    }
+  }
+  theta <- t 
+  theta_mean <- mean(estymator_t)
+  mse <- 1/p*sum((theta-estymator_t)^2)
+  var <- 1/p*sum((theta_mean-estymator_t)^2)
+  bias <- 1/p*sum(estymator_t-theta)
+  wynik <- c(var,mse,bias)
+  return(wynik)
+}
+a1C <- metoda_newtona_1(10000,50,1,1) 
+b1C <- metoda_newtona_1(10000,50,4,1) 
+c1C <- metoda_newtona_1(10000,50,1,2) 
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Var = round(c(a1C[1],b1C[1],c1C[1]),5), MSE = round(c(a1C[2],b1C[2],c1C[2]),5), Bias = round(c(a1C[3],b1C[3],c1C[3]),5))
+knitr::kable(df)
+
+```
+Można zauważyć, że wyniki dla C(1,1) oraz C(4,1) są bardzo niskie, oznacza to, że otrzymaliśmy dobrze przybliżony ENW, co by oznaczało, że wielkość $\theta$ nie ma wpływu na wynik. Nie można tego samego powiedzieć o rozkładzie C(1,2), ponieważ tu widać już znacznie większą wariancję oraz MSE, co by oznaczało, że przybliżenie ENW dla tego rozkładu jest mniej dokładne. Wnioski nasuwające się po porównaniu tych wyników są takie, że niewiele większa wariancja wpływa negatywnie na poprawność estymacji tego parametru.
+
+## Zadanie 7
+Powtórzę eksperymenty numeryczne z zadań 1, 5 i 6 dla n = 20 i n = 100. 
+
+**Zadanie 1'**  
+
+* n = 20  
+
+$$N(1,1)$$
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(20, 1, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+$$N(4,1)$$
+```{r, echo=FALSE, results='asis'}
+wyniki_estymacji <- wylicz_estym(20, 4, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+$$N(1,4)$$
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(20, 1, 4)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+
+
+Uzyskane wyniki dla n = 20 są gorsze niż dla n = 50 z 1. zadania. Każda z wartości, co do modułu, wzrosła w każdym z przypadków. Oznacza to, że wraz z zmniejszeniem rozmiaru próby zmalała poprawność estymatorów.  
+
+
+* n = 100  
+
+$$N(1,1)$$
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(100, 1, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+$$N(4,1)$$
+```{r, echo=FALSE}
+wyniki_estymacji <- wylicz_estym(100, 4, 1)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+$$N(1,4)$$
+```{r , echo=FALSE}
+wyniki_estymacji <- wylicz_estym(100, 1, 4)
+wyniki_estymacji[,1]<- c("\\(\\hat{\\theta_1}\\)", "\\(\\hat{\\theta_2}\\)", "\\(\\hat{\\theta_3}\\)", "\\(\\hat{\\theta_4}\\)")
+colnames(wyniki_estymacji)[1] <- " "
+knitr::kable(wyniki_estymacji)
+```
+
+Tym razem wyniki się poprawiły. Wartości błędu średniokwadratowego, wariancji oraz obciążenia, co do modułu, są niższe. Oznacza to, że nasza estymacja się poprawiła. Potwierdza nam ten przykład to, co napisałam wyżej, czyli im większa próba, tym bardziej dokładna estymacja. Estymator $\hat{\theta_4}$ dalej pozostaje złym wyborem estymatora parametru $\theta$.  
+
+**Zadanie 5'**  
+
+* n = 20
+
+```{r, echo = FALSE}
+a <- funkcja(20, 1, 1, 0.00001)
+b <- funkcja(20, 4, 1, 0.00001)
+c <- funkcja(20, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Przyblizenie = c(a[1],b[1],c[1]), Kroki = c(a[2],b[2],c[2]))
+knitr::kable(df)
+
+```
+Otrzymane estymacje są gorsze w przypadku próby n = 20. Ponownie nasuwa nam się wniosek, że im mniejsza próbka, tym dokładność przybliżenia maleje.  
+
+```{r, echo = FALSE}
+a1 <- metoda_newtona(10000,20,1,1) 
+b1 <- metoda_newtona(10000,20,4,1) 
+c1 <- metoda_newtona(10000,20,1,2) 
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Var = round(c(a1[1],b1[1],c1[1]),5), MSE = round(c(a1[2],b1[2],c1[2]),5), Bias = round(c(a1[3],b1[3],c1[3]),5))
+knitr::kable(df)
+
+```
+Ponownie można zauważyć, że wyniki wariancji, błędu średniokwadratowego i obciążenia estymatora są gorsze (tj. większe co do modułu). Wraz ze zmniejszeniem próby zmalała dokładność estymacji.  
+
+* n = 100
+
+```{r, echo = FALSE}
+a <- funkcja(100, 1, 1, 0.00001)
+b <- funkcja(100, 4, 1, 0.00001)
+c <- funkcja(100, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Przyblizenie = c(a[1],b[1],c[1]), Kroki = c(a[2],b[2],c[2]))
+knitr::kable(df)
+
+```
+Tym razem dla większej próbki otrzymujemy gorsze wyniki, niż dla próby n = 50. Jednak było to jedynie pojedyńcze doświadczenie, poniżej pokażę tabelkę przy 10 000 powtórzeniach.  
+
+```{r, echo = FALSE}
+a1 <- metoda_newtona(10000,100,1,1) 
+b1 <- metoda_newtona(10000,100,4,1) 
+c1 <- metoda_newtona(10000,100,1,2) 
+df <- data.frame(Rozkład = c("L(1,1)", "L(4,1)", "L(1,2)"),Var = round(c(a1[1],b1[1],c1[1]),5), MSE = round(c(a1[2],b1[2],c1[2]),5), Bias = round(c(a1[3],b1[3],c1[3]),5))
+knitr::kable(df)
+
+```
+Porównując wyniki z wartościami dla n = 50 widać, że wyniki ponownie są lepsze (tj. mniejsze co do modułu), znaczy to tyle, że większa próbka zapewnia nam lepszą estymację przy wielokrotnym powtórzeniu doświadczenia.  
+
+**Zadanie 6'**  
+
+* n = 20
+```{r, echo = FALSE}
+aC <- funkcja_C(20, 1, 1, 0.00001)
+bC <- funkcja_C(20, 4, 1, 0.00001)
+cC <- funkcja_C(20, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Przyblizenie = c(aC[1],bC[1],cC[1]), Kroki = c(aC[2],bC[2],cC[2]))
+knitr::kable(df)
+```
+Rzuca się w oczy wartość ENW dla C(1,2), ponieważ jest ona zdecydowanie mniej dokładna, niż dla n = 50, mimo że ilość kroków jest ta sama. W pozostałych przypadkach różnica nie jest tak duża. Jest to spowodowane większą wariancją, więc i większym rozrzutem obserwacji, ciężej estymować taki rozkład, szczególnie przy jednokrotnym próbkowaniu.  
+
+```{r, echo = FALSE}
+a1C <- metoda_newtona_1(10000,20,1,1) 
+b1C <- metoda_newtona_1(10000,20,4,1) 
+c1C <- metoda_newtona_1(10000,20,1,2) 
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Var = round(c(a1C[1],b1C[1],c1C[1]),5), MSE = round(c(a1C[2],b1C[2],c1C[2]),5), Bias = round(c(a1C[3],b1C[3],c1C[3]),5))
+knitr::kable(df)
+```
+Dla tego przypadku wyniki wychodzą zaskakująco ekstremalne, widać, że przybliżanie tego rozkładu Metodą Newtona zdecydowanie nie jest najlepszą opcją.  
+
+* n = 100
+```{r, echo = FALSE}
+aC <- funkcja_C(100, 1, 1, 0.00001)
+bC <- funkcja_C(100, 4, 1, 0.00001)
+cC <- funkcja_C(100, 1, 2, 0.00001)
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Przyblizenie = c(aC[1],bC[1],cC[1]), Kroki = c(aC[2],bC[2],cC[2]))
+knitr::kable(df)
+```
+Już przy jednokrotnym próbkowaniu można zauważyć znaczącą poprawę ENW (tj. bliższe prawdziwej wartości) dla n = 100 niż dla n = 50.  
+
+```{r, echo = FALSE}
+a1C <- metoda_newtona_1(10000,100,1,1) 
+b1C <- metoda_newtona_1(10000,100,4,1) 
+c1C <- metoda_newtona_1(10000,100,1,2) 
+df <- data.frame(Rozkład = c("C(1,1)", "C(4,1)", "C(1,2)"),Var = round(c(a1C[1],b1C[1],c1C[1]),5), MSE = round(c(a1C[2],b1C[2],c1C[2]),5), Bias = round(c(a1C[3],b1C[3],c1C[3]),5))
+knitr::kable(df)
+```
+Porównując powyższą tabelę z tabelą z zadania 6. możemy zaobserwować zmniejszenie się wartości wariancji, błędu średniokwadratowego i obciązenia estymatowa w każdym z rozkładów. Oznacza to, że dla większej próby mamy dokładniejszą estymację.
